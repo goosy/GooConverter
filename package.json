@@ -1,0 +1,26 @@
+{
+  "name": "gootemplate",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "gen string form template and save to file",
+  "main": "/src/index.js",
+  "engines": {
+    "node": ">=12.6.0 <13.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^6.0.1",
+    "esm": "^3.2.25",
+    "gulp": "^4.0.2"
+  },
+  "directories": {
+    "dist": "dist",
+    "src": "src"
+  },
+  "scripts": {
+    "start": "node ./src/index.js"
+  },
+  "keywords": [ ],
+  "author": "goosy.jo@gmail.com",
+  "license": "MIT"
+}
