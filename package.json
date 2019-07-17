@@ -1,9 +1,9 @@
 {
-  "name": "gootemplate",
+  "name": "gooconverter",
   "version": "0.1.0",
   "type": "module",
   "description": "gen string form template and save to file",
-  "main": "/src/index.js",
+  "main": "./lib/converter.js",
   "engines": {
     "node": ">=12.6.0 <13.0.0"
   },
@@ -18,7 +18,7 @@
     "src": "src"
   },
   "scripts": {
-    "start": "node ./src/index.js"
+    "start": "node ./lib/converter.js"
   },
   "keywords": [ ],
   "author": "goosy.jo@gmail.com",
