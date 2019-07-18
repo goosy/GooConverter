@@ -10,17 +10,18 @@
   "dependencies": {},
   "devDependencies": {
     "eslint": "^6.0.1",
-    "esm": "^3.2.25",
     "gulp": "^4.0.2"
   },
   "directories": {
     "dist": "dist",
-    "src": "src"
+    "lib": "lib"
   },
   "scripts": {
     "start": "node ./lib/converter.js"
   },
-  "keywords": [ ],
+  "keywords": [
+    "converter"
+  ],
   "author": "goosy.jo@gmail.com",
   "license": "MIT"
 }
