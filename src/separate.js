@@ -13,7 +13,7 @@
  */
 function parse_code(precode) {
     let children = [];
-    let match = /^\s*#if\s*([\s\S]*)$/.exec(precode);
+    let match = /^\s*#if\s+([\s\S]*)$/.exec(precode);
     if (match) {
         return {
             "type": "if",
@@ -29,7 +29,7 @@ function parse_code(precode) {
             children
         }
     }
-    match = /^\s*#for\s*([\s\S]*)$/.exec(precode);
+    match = /^\s*#for\s+([\s\S]*)$/.exec(precode);
     if (match) {
         return {
             "type": "for",

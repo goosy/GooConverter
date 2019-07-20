@@ -29,7 +29,6 @@ export async function converter(entry, output) {
         if (savetofile) output_file = join(output, `./${rule.output_file}`);
         let option = {
             "encoding": "utf8",
-            "append": 'w',
             ...rule.option,
         };
         let content = conveter_tags(rule.tags, separate(template));
@@ -64,7 +63,7 @@ function conveter_tags(tags, nodes) {
             if (eval(express)) content += conveter_tags(tags, node.children);
         }
         if (node.type == "for") {
-            let [new_var, list] = node.text.split(/\s*in\s*/);
+            let [new_var, list] = node.text.split(/\s+in\s+/);
             if (/\s/.test(new_var) || !list) throw Error("wrong for statement!");
             let express = replace_vars(tags, list);
             for (let item of eval(express)) {
