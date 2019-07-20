@@ -2,7 +2,7 @@
  * @file 拆分模板为语法树
  * @author 'goosy.jo@gmail.com'
  */
-;
+
 /**
  * @typedef {{type:string, text:string, children:Goonode[]}} Goonode
  */
@@ -57,16 +57,13 @@ function parse_code(precode) {
  * 
  * @param {string} template 
  */
-export function separate(template) {
+export function parseToDOM(template) {
     /**
      * @type {Goonode[]} process_queue
+     * @type {Goonode[]} current_queue
      */
-    let process_queue = [];
-    let current_queue = process_queue;
-    let match;
-    let reg_left = /\{\{/g; // 寻找 '{{' 
-    let reg_right = /\}\}/g; // 寻找 '{{' 
-    let current_index = 0;
+    let process_queue, current_queue;
+    current_queue = process_queue = [];
     let statement_stack = [];
 
     /**
@@ -90,7 +87,15 @@ export function separate(template) {
         current_queue.push(code);
     }
 
-    while (match = reg_left.exec(template)) {
+    let reg_left = /\{\{/g; // 寻找 '{{' 
+    let reg_right = /\}\}/g; // 寻找 '{{' 
+    let current_index = 0;
+
+    // 寻找{{.*}}直至完成。当正则式搜索不到匹配时，lastIndex会重新变成0
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        let match = reg_left.exec(template);
+        if (!match) break;
         if (reg_left.lastIndex < current_index) throw Error("tags mark wrong!");
         push_code({
             "type": 'raw',
@@ -98,15 +103,18 @@ export function separate(template) {
             "children": []
         });
         current_index = reg_left.lastIndex;
+
         match = reg_right.exec(template);
         if (reg_right.lastIndex < current_index) throw Error("tags mark wrong!");
         push_code(parse_code(template.substring(current_index, match.index)));
         current_index = reg_right.lastIndex;
     }
+
     if (template.length > current_index) current_queue.push({
         "type": "raw",
         "text": template.substring(current_index, template.length),
         "children": []
     });
+    
     return process_queue;
 }

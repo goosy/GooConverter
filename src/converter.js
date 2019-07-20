@@ -11,15 +11,23 @@ import {
     join
 } from "path";
 import {
-    separate
-} from "./separate.js";
+    parseToDOM
+} from "./gooparse.js";
 
+/**
+ * 
+ * @param {Object} tags 
+ * @param {string} template 
+ */
+export function convert(tags, template) {
+    return convert_dom(tags, parseToDOM(template));
+}
 /**
  * @param {Entry} entry 
  * @param {string | null} output output file pathname, or a null for output no file but only return a array of string. 
  * @return {Promise<string[]>} 
  */
-export async function converter(entry, output) {
+export async function convert2file(entry, output) {
     let savetofile = !!output;
     let resultList = [];
     let rules = entry.rules;
@@ -31,7 +39,7 @@ export async function converter(entry, output) {
             "encoding": "utf8",
             ...rule.option,
         };
-        let content = conveter_tags(rule.tags, separate(template));
+        let content = convert_dom(rule.tags, parseToDOM(template));
         resultList.push(content);
         if (savetofile) await fs.writeFile(output_file, content, option);
     }
@@ -48,11 +56,11 @@ function replace_vars(tags, express) {
 /**
  * 
  * @param {Object} tags 
- * @param {Goonode[]} nodes 
+ * @param {Goonode[]} dom 
  */
-function conveter_tags(tags, nodes) {
+function convert_dom(tags, dom) {
     let content = '';
-    nodes.forEach(node => {
+    dom.forEach(node => {
         if (node.type == "raw") content += node.text;
         if (node.type == "express") {
             let express = node.text;
@@ -60,7 +68,7 @@ function conveter_tags(tags, nodes) {
         }
         if (node.type == "if") { // node.text 转换求值后，决定是否呈现 if body
             let express = replace_vars(tags, node.text);
-            if (eval(express)) content += conveter_tags(tags, node.children);
+            if (eval(express)) content += convert_dom(tags, node.children);
         }
         if (node.type == "for") {
             let [new_var, list] = node.text.split(/\s+in\s+/);
@@ -75,15 +83,4 @@ function conveter_tags(tags, nodes) {
         }
     })
     return content;
-}
-
-export function numberBytes(num) {
-    let numstr = num.toString(16);
-    let result = [];
-    while (numstr.length > 2) {
-        result.push(numstr.slice(-2));
-        numstr = numstr.slice(0, -2);
-    }
-    if (numstr.length > 0) result.push(numstr);
-    return result;
 }

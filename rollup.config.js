@@ -6,9 +6,9 @@ const production = !process.env.ROLLUP_WATCH;
 
 export default [
 	{
-		input: ['src/converter.js'],
+		input: ['src/index.js'],
 		output: {
-			file: 'lib/converter.js',
+			file: 'lib/index.js',
 			format: 'esm', // 
 		},
 		plugins: [
@@ -18,6 +18,6 @@ export default [
 			commonjs(), // converts XX to ES modules
 			production && terser() // minify, but only in production
 		],
-		external: [ 'fs', 'path', 'net', './separate' ],
+		external: ['fs', 'path', 'net'],
 	},
 ];

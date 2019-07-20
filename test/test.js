@@ -1,6 +1,7 @@
 import {
-    converter
-} from "../src/converter.js";
+    convert,
+    convert2file
+} from "../lib/index.js";
 
 let template = `
 {{#for i in 
@@ -21,6 +22,8 @@ let tags = {
     ],
     "c": [true, false, false],
 }
+console.log(convert(tags,template));
+
 
 let entry = {
     rules: [{
@@ -29,10 +32,7 @@ let entry = {
         tags
     }, ],
     template
-}
-
-async function main() {
-    console.log(await converter(entry));
-}
-
-main()
+};
+(async function(){
+    console.log(await convert2file(entry));
+})();

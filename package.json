@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "type": "module",
   "description": "gen string form template and save to file",
-  "main": "./lib/converter.js",
+  "main": "./lib/index.js",
   "engines": {
     "node": ">=12.6.0 <13.0.0"
   },
   "dependencies": {},
   "devDependencies": {
     "eslint": "^6.0.1",
-    "rollup": "^1.15.6",
+    "rollup": "^1.17.0",
     "rollup-plugin-commonjs": "^10.0.0",
     "rollup-plugin-node-resolve": "^5.0.3",
     "rollup-plugin-terser": "^5.0.0"
@@ -20,7 +20,7 @@
     "lib": "lib"
   },
   "scripts": {
-    "start": "node ./lib/converter.js"
+    "start": "node ./lib/index.js"
   },
   "keywords": [
     "converter"
