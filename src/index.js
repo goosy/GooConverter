@@ -1,13 +1,14 @@
-import {
-    parseToDOM
-} from "./gooparse.js";
-
-import {
+export {
     convert,
     convert2file
 } from "./converter.js";
 
-function numberBytes(num) {
+export {
+    parseToDOM
+} from "./gooparse.js";
+
+
+export function numberBytes(num) {
     let numstr = num.toString(16);
     let result = [];
     while (numstr.length > 2) {
@@ -16,11 +17,4 @@ function numberBytes(num) {
     }
     if (numstr.length > 0) result.push(numstr);
     return result;
-}
-
-export {
-    parseToDOM,
-    convert,
-    convert2file,
-    numberBytes
 }

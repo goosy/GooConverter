@@ -1,7 +1,7 @@
 import {
     convert,
     convert2file
-} from "../lib/index.js";
+} from "../src/index.js";
 
 let template = `
 {{#for i in 
@@ -12,7 +12,9 @@ let template = `
 {{ #if c[0]}}
 c[0] is true
 {{ #for i in c    }}c: {{i}}
-{{ #endfor}}{{ #endif}}
+{{ #endfor}}{{#elseif c[1]}}
+c[1]
+{{ #endif}}
 end`;
 let tags = {
     "a": [

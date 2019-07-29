@@ -1,4 +1,4 @@
-import {convert2file} from  "../lib/index.js";
+import {convert2file} from  "../src/index.js";
 let entry = {
     "rules": [{
         "output_file": "GD8.txt",
@@ -15,9 +15,6 @@ let entry = {
         },
     }, {
         "output_file": "Node_Data.awl",
-        "option": {
-            "append": true
-        },
         "tags": {
             "node_name": "GD9",
             "nodeID": 8079,
@@ -36,4 +33,5 @@ people:
 {{ #for people in peoples}}{{ #if people.age > 18  }}
 * {{people.name}}{{#endif}}{{ #endfor}}
 `}
+
 console.log(convert2file(entry));

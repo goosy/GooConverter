@@ -39,7 +39,7 @@ export async function convert2file(entry, output) {
             "encoding": "utf8",
             ...rule.option,
         };
-        let content = convert_dom(rule.tags, parseToDOM(template));
+        let content = convert(rule.tags, template);
         resultList.push(content);
         if (savetofile) await fs.writeFile(output_file, content, option);
     }
@@ -66,9 +66,16 @@ function convert_dom(tags, dom) {
             let express = node.text;
             content += eval(replace_vars(tags, express));
         }
-        if (node.type == "if") { // node.text 转换求值后，决定是否呈现 if body
-            let express = replace_vars(tags, node.text);
-            if (eval(express)) content += convert_dom(tags, node.children);
+        if(node.type == "ifs"){
+            let truenode = node.children.find( ifnode => {
+                if (ifnode.type == "if" || ifnode.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
+                    let express = replace_vars(tags, ifnode.text);
+                    return eval(express);
+                }
+                if (ifnode.type == "else") return true;
+                return false;
+            });
+            if (truenode) content += convert_dom(tags, truenode.children);
         }
         if (node.type == "for") {
             let [new_var, list] = node.text.split(/\s+in\s+/);
