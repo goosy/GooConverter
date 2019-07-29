@@ -3,13 +3,18 @@
 	"version": "0.1.0",
 	"type": "module",
 	"description": "gen string form template and save to file",
-	"main": "lib/index.js",
+	"main": "./lib/index.js",
+	"exports": {
+		".": "./lib/index.js",
+		"./cjs": "./lib/index.cjs"
+	},
 	"engines": {
 		"node": ">=12.6.0 <13.0.0"
 	},
 	"dependencies": {},
 	"devDependencies": {
 		"eslint": "^6.1.0",
+		"mocha": "^6.2.0",
 		"rollup": "^1.17.0",
 		"rollup-plugin-commonjs": "^10.0.0",
 		"rollup-plugin-node-resolve": "^5.0.3",
@@ -20,7 +25,8 @@
 	},
 	"scripts": {
 		"start": "rollup -c",
-		"dev": "rollup -c -w"
+		"dev": "rollup -c -w",
+		"test": "mocha"
 	},
 	"keywords": [
 		"converter"

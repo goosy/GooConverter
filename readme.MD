@@ -41,4 +41,4 @@ people:
 
 ```
 
-如果要应用多条转换并各自输出到文件，用 convert2file 函数，见 test/example.entry.js
+如果要应用多条转换并各自输出到文件，用 convert2file 函数，见 ./example/example.entry.js

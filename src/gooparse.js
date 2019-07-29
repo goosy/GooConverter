@@ -209,7 +209,9 @@ export function parseToDOM(template) {
         "contents": []
     });
 
-    // should current_node == document
+    if (current_node != document) {
+        throw Error(`${current_node.type} 标记不匹配`);
+    }
 
     return document;
 }

@@ -7,10 +7,13 @@ const production = !process.env.ROLLUP_WATCH;
 
 export default {
 	input: 'src/index.js',
-	output: {
+	output: [{
 		file: pkg['main'],
 		format: 'es',
-	},
+	}, {
+		file: pkg['exports']["./cjs"],
+		format: 'cjs',
+	}],
 	plugins: [
 		resolve({
 			preferBuiltins: true,
