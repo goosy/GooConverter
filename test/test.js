@@ -14,7 +14,8 @@ c[0] is true
 {{ #for i in c    }}c: {{i}}
 {{ #endfor}}{{#elseif c[1]}}
 c[1]
-{{ #endif}}
+{ { #endif} }
+
 end`;
 let tags = {
     "a": [

@@ -56,26 +56,25 @@ function replace_vars(tags, express) {
 /**
  * 
  * @param {Object} tags 
- * @param {Goonode[]} dom 
+ * @param {Goonode} dom 
  */
 function convert_dom(tags, dom) {
     let content = '';
-    dom.forEach(node => {
+    dom.contents.forEach(node => {
         if (node.type == "raw") content += node.text;
         if (node.type == "express") {
             let express = node.text;
             content += eval(replace_vars(tags, express));
         }
         if(node.type == "ifs"){
-            let truenode = node.children.find( ifnode => {
-                if (ifnode.type == "if" || ifnode.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
-                    let express = replace_vars(tags, ifnode.text);
-                    return eval(express);
+            let truenode = node.contents.find( node => {
+                if (node.type == "if" || node.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
+                    return eval(replace_vars(tags, node.text));
                 }
-                if (ifnode.type == "else") return true;
+                if (node.type == "else") return true;
                 return false;
             });
-            if (truenode) content += convert_dom(tags, truenode.children);
+            if (truenode) content += convert_dom(tags, truenode);
         }
         if (node.type == "for") {
             let [new_var, list] = node.text.split(/\s+in\s+/);
@@ -85,7 +84,7 @@ function convert_dom(tags, dom) {
                 content += convert_dom({
                     ...tags,
                     [new_var]: item
-                }, node.children);
+                }, node);
             }
         }
     })

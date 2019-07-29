@@ -32,6 +32,8 @@ station ID: {{nodeID}}
 people:
 {{ #for people in peoples}}{{ #if people.age > 18  }}
 * {{people.name}}{{#endif}}{{ #endfor}}
-`}
+`};
 
-console.log(convert2file(entry));
+(async ()=>{
+console.log(await convert2file(entry));
+})();

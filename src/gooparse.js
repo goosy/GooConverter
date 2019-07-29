@@ -4,17 +4,17 @@
  */
 
 /**
- * @typedef {{type:string, text:string, children:Goonode[]}} Goonode
+ * @typedef {{type:string, text:string, contents:Goonode[]}} Goonode
  */
 
 /**
- * @type {Goonode[]} process_queue
+ * @type {Goonode} document
  */
-let process_queue;
+let document;
 /**
- * @type {Goonode[]} current_queue
+ * @type {Goonode} current_node
  */
-let current_queue;
+let current_node;
 
 /**
  * 分析precode, 归类为 if endif for endfor raw 五类的一个
@@ -22,7 +22,7 @@ let current_queue;
  * @return {Goonode}
  */
 function parse_code(precode) { 
-    let children = [];
+    let contents = [];
 
     // meet {{#if express }}
     let match = /^\s*#if\s+([\s\S]*)$/.exec(precode);
@@ -30,11 +30,11 @@ function parse_code(precode) {
         return {
             "type": "ifs",
             "text": "queue of if",
-            "children": [ // must be [ if, elseif... elseif, else]
+            "contents": [ // must be [ if, elseif... elseif, else]
                 {
                     "type": "if",
                     "text": match[1].replace(/[\r\n]+/g, '').trim(),
-                    children
+                    contents
                 },
             ]
         }
@@ -46,7 +46,7 @@ function parse_code(precode) {
         return {
             "type": "elseif",
             "text": match[1].replace(/[\r\n]+/g, '').trim(),
-            children
+            contents
         }
     }
 
@@ -56,7 +56,7 @@ function parse_code(precode) {
         return {
             "type": "else",
             "text": "else output",
-            children
+            contents
         }
     }
 
@@ -74,7 +74,7 @@ function parse_code(precode) {
         return {
             "type": "for",
             "text": match[1].replace(/[\r\n]+/g, '').trim(),
-            children
+            contents
         }
     }
 
@@ -90,24 +90,22 @@ function parse_code(precode) {
     return {
         "type": "express",
         "text": precode,
-        children
+        contents
     }
 }
 
 function stack_push(code) { 
-    current_queue.push(code);
-    code.children.parents_queue = current_queue;
-    current_queue = code.children;
-    current_queue.type = code.type;
+    code.parents = current_node;
+    current_node.contents.push(code);
+    current_node = code;
     if (code.type == "ifs") { 
-        current_queue[0].children.parents_queue = current_queue;
-        current_queue = current_queue[0].children;
-        current_queue.type = "if";
+        current_node.contents[0].parents = current_node;
+        current_node = current_node.contents[0];
     }
 }
 
 function stack_pop() {
-    current_queue = current_queue.parents_queue;
+    current_node = current_node.parents;
 }
 /**
  * 
@@ -116,55 +114,55 @@ function stack_pop() {
 
 function gen_tree(code) { 
     if (code.type == "ifs") {
-        // 【...】
-        stack_push(code); // [... ifs[...if【...】]]
+        // *node[...]
+        stack_push(code); // node[... ifs[...*if[] ] ]
         return;
     }
     if (code.type == "elseif" || code.type == "else") {
-        // [... ifs[...if|elseif【...】]] 
+        // ifs[...*if|elseif[...]]
         
         // 不能和上一个 {{#if}} 或 {{#elseif}} 匹配，报错
-        let type = current_queue.type;
+        let type = current_node.type;
         if (type != "if" && type != "elseif") throw Error("wrong pair of IF!");
         
         // 出栈
-        stack_pop(); // [... ifs【...if|elseif[...]】]
+        stack_pop(); // *ifs[...if|elseif[...]]
         
         // 重新入栈
-        stack_push(code);// [... ifs[...if|elseif[...], elseif|else【】]] 
+        stack_push(code);// ifs[...if|elseif[...], *elseif|else[] ] 
         
         return;
     }
     if (code.type == "endif") {
-        // [... ifs[...if|elseif|else【...】]] 
+        // node[...ifs[...*if|elseif|else[...]]]
         
         // 不能和上一个 {{#if}} 或 {{#elseif}} 或 {{#else}} 匹配，报错
-        let type = current_queue.type;
+        let type = current_node.type;
         if (type != "if" && type != "elseif" && type != "else") throw Error("wrong pair of IF!");
         
         // 出栈，如不在 ifs 队列中，报错
-        stack_pop(); // [... ifs【...if|elseif|else[...]】]
-        if (current_queue.type != "ifs") throw Error("wrong pair of IF!");
+        stack_pop(); // node[...*ifs[...if|elseif|else[...]]]
+        if (current_node.type != "ifs") throw Error("wrong pair of IF!");
 
         // 再次出栈
-        stack_pop(); // 【... ifs[...if|elseif|else[...]]】
+        stack_pop(); // *node[...ifs[...if|elseif|else[...]]]
         return;
     }
     if (code.type == "for") {
-        // 【...】
-        stack_push(code); // [... for【...】]
+        // *node[...]
+        stack_push(code); // node[...*for[]]
         return;
     }
 
     if (code.type == "endfor") {
-        // [...for【...】]
-        if (current_queue.type != "for") throw Error("wrong pair of FOR!");
-        stack_pop(); // 【...for[...]】
+        // node[...*for[...]]
+        if (current_node.type != "for") throw Error("wrong pair of FOR!");
+        stack_pop(); // *node[...for[...]]
         return;
     }
     if (code.type == "express" || code.type == "raw") {
-        // 【...】
-        current_queue.push(code); // 【...express|raw】
+        // *node[...]
+        current_node.contents.push(code); // *node[...*express|raw[] ]
         return;
     }
     throw Error("wrong node");
@@ -172,13 +170,16 @@ function gen_tree(code) {
 
 /**
  * 
- * @param {string} template 
+ * @param {string} template
  */
 export function parseToDOM(template) {
 
-    // init process_queue
-    current_queue = process_queue = [];
-    process_queue.type = "root";
+    // init document
+    current_node = document = {
+        type:"root",
+        text: "",
+        contents:[]
+    };
     let reg_left = /\{\{/g; // 寻找 '{{' 
     let reg_right = /\}\}/g; // 寻找 '{{' 
     let current_index = 0;
@@ -192,7 +193,7 @@ export function parseToDOM(template) {
         gen_tree({
             "type": 'raw',
             "text": template.substring(current_index, match.index),
-            "children": []
+            "contents": []
         });
         current_index = reg_left.lastIndex;
 
@@ -202,11 +203,13 @@ export function parseToDOM(template) {
         current_index = reg_right.lastIndex;
     }
 
-    if (template.length > current_index) current_queue.push({
+    if (template.length > current_index) current_node.contents.push({
         "type": "raw",
         "text": template.substring(current_index, template.length),
-        "children": []
+        "contents": []
     });
 
-    return process_queue;
+    // should current_node == document
+
+    return document;
 }
