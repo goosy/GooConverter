@@ -53,6 +53,35 @@ function replace_vars(tags, express) {
     }
     return express;
 }
+
+function do_for_express(tags, node) {
+    let [varstr, express] = node.text.split(/\s+in\s+/);
+    if (!express) throw Error("wrong #for statement!");
+    let varlist = varstr.split(",").map(str => str.trim());
+    if (varlist.length > 2) throw Error('too many amount of comma in "#for key, value in express"');
+    express = eval(replace_vars(tags, express));
+    if (!express) throw Error('wrong express in "#for key, value in express"');
+    let [key, value] = varlist;
+    let content = "";
+    if(!value) {
+        for (const item of express) {
+            content += convert_dom({
+                ...tags,
+                [key]: item
+            }, node);
+        }
+    } else {
+        for (const index in express) {
+            content += convert_dom({
+                ...tags,
+                [key]: index,
+                [value]: express[index]
+            }, node);
+        }
+    }
+    return content;
+}
+
 /**
  * 
  * @param {Object} tags 
@@ -77,15 +106,7 @@ function convert_dom(tags, dom) {
             if (truenode) content += convert_dom(tags, truenode);
         }
         if (node.type == "for") {
-            let [new_var, list] = node.text.split(/\s+in\s+/);
-            if (/\s/.test(new_var) || !list) throw Error("wrong for statement!");
-            let express = replace_vars(tags, list);
-            for (let item of eval(express)) {
-                content += convert_dom({
-                    ...tags,
-                    [new_var]: item
-                }, node);
-            }
+            content += do_for_express(tags, node);
         }
     })
     return content;
