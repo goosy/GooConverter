@@ -26,21 +26,48 @@ describe('convert(tags, template)', () => {
                 convert({}, '人物：{{name"赵六"');
             }, Error);
         });
+        it('{{ express }} 输出正确', () => {
+            assert.equal(
+                convert({"name":"赵六"}, '人物：{{name}}'),
+                "人物：赵六"
+            );
+            assert.equal( // (express)
+                convert({"name":"赵六"}, '人物：{{(name)}}'),
+                "人物：赵六"
+            );
+            assert.equal( // "express"
+                convert({"name": "赵六"}, '人物：{{"name"}}'),
+                "人物：赵六"
+            );
+            assert.equal(
+                convert({"length": 8, 'index': 6}, 'length > index：{{length > index}}'),
+                "length > index：true"
+            );
+        });
         it('#for loop', () => {
             assert.equal(
                 convert({}, '以下人员:{{#for name in ["张三", \n"李四", "王五"]\n}}\n人物：{{name}}{{#endfor}}'),
                 "以下人员:\n人物：张三\n人物：李四\n人物：王五"
             );
             assert.equal(
-                convert({}, '以下人员:{{#for sn, name in ["张三", \n"李四", "王五"]\n}}\n人物{{sn}}:{{name}}{{#endfor}}'),
-                '以下人员:\n人物0:张三\n人物1:李四\n人物2:王五'
+                convert({}, '{{#for sn, name in ["张三", "李四", "王五"]}}人物{{sn}}:{{name}}\n{{#endfor sn, name}}'),
+                '人物0:张三\n人物1:李四\n人物2:王五\n'
+            );
+            assert.equal( // 表达式中有回车
+                convert({}, `{{\n   \n#for sn, name\n in ["张三", \n"李四", "王五"]\n}}人物{{sn}}:{{name}}\n{{\n#endfor \nsn, name\n}}`),
+                '人物0:张三\n人物1:李四\n人物2:王五\n'
             );
         });
         it('#if condition', () => {
             assert.equal(
-                convert({}, ' {{#if "name".length \n>\n0   }}\n人物：{{"XX"}}{{ #endif }}'),
+                convert({}, ' {{#if "name".length \n>\n0   }}\n人物：{{"XX"}}{{#endif}}'),
                 " \n人物：XX"
+            );
+            assert.equal(
+                convert({"name": "吴七"}, '{{#if \nname}}{{name}}{{ #endif \ncomment}}'),
+                "吴七"
             );
         });
     });
 });
+

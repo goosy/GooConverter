@@ -48,7 +48,7 @@ export async function convert2file(entry, output) {
 
 function replace_vars(tags, express) {
     for (let key in tags) {
-        let reg = new RegExp(`(?=\\W|^)${key}(?=\\W|$)`, 'g')
+        let reg = new RegExp(`\\b${key}\\b`, 'g');
         express = express.replace(reg, `tags["${key}"]`);
     }
     return express;

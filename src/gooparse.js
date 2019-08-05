@@ -61,10 +61,11 @@ function parse_code(precode) {
     }
 
     // meet {{#endif}}
-    match = /^\s*#endif\s*$/.exec(precode);
+    match = /^\s*#endif\s*([\s\S]*)$/.exec(precode);
     if (match) {
         return {
             "type": "endif",
+            "text": match[1].replace(/[\r\n]+/g, '').trim(),
         }
     }
 
@@ -79,10 +80,11 @@ function parse_code(precode) {
     }
 
     // meet {{#endfor}}
-    match = /^\s*#endfor\s*$/.exec(precode);
+    match = /^\s*#endfor\s*([\s\S]*)$/.exec(precode);
     if (match) {
         return {
-            "type": "endfor"
+            "type": "endfor",
+            "text": match[1].replace(/[\r\n]+/g, '').trim(),
         }
     }
 
