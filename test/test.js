@@ -1,31 +1,11 @@
+/* eslint-disable no-undef */
 const {
     convert
 } = require("../lib/index.cjs");
 const assert = require("assert");
 
 describe('convert(tags, template)', () => {
-    describe('模板解析正确', () => {
-        it('#for #endfor 不匹配', () => {
-            assert.throws(() => {
-                convert({}, '{{#for name in ["张三", "李四", "王五"]}}人物：{{name}}');
-            }, Error);
-            assert.throws(() => {
-                convert({}, '以下人员:{{#if "赵六" in ["张三", "李四", "王五"]}}\n人物：{{name}}{{#endfor}}');
-            }, Error);
-        });
-        it('#if #endif 不匹配', () => {
-            assert.throws(() => {
-                convert({}, '以下人员:{{#if "赵六" in ["张三", "李四", "王五"]}}\n人物：{{name}}');
-            }, Error);
-            assert.throws(() => {
-                convert({}, '{{#for name in ["张三", "李四", "王五"]}}人物：{{name}}{{#endif}}');
-            }, Error);
-        });
-        it('{{ 与 }} 配套嵌套正确', () => {
-            assert.throws(() => {
-                convert({}, '人物：{{name"赵六"');
-            }, Error);
-        });
+    describe('模板正确解析', () => {
         it('{{ express }} 输出正确', () => {
             assert.equal(
                 convert({"name":"赵六"}, '人物：{{name}}'),
@@ -67,6 +47,58 @@ describe('convert(tags, template)', () => {
                 convert({"name": "吴七"}, '{{#if \nname}}{{name}}{{ #endif \ncomment}}'),
                 "吴七"
             );
+        });
+        it('#let assignment expression', () => {
+            assert.equal(
+                convert({}, '{{#let r = 5*8/2 }}{{r}}'),
+                "20"
+            );
+        });
+        it('# comment', () => {
+            assert.equal(
+                convert({}, '{{# let \nr = \n\t5*8/2 }}'),
+                ""
+            );
+        });
+    });
+    describe('模板语法错', () => {
+        it('{{#指令 正确', () => {
+            assert.throws(() => {
+                convert({}, '{{#if9>0}}9>0{{#endif}}');
+            }, Error);
+            assert.throws(() => {
+                convert({}, '{{#fora in [0,1,2]}}{{a}}{{#endfor}}');
+            }, Error);
+            assert.throws(() => {
+                convert({}, '{{#if   }}if{{#endif}}');
+            }, Error);
+            assert.throws(() => {
+                convert({}, '{{#for   }}if{{#endif}}');
+            }, Error);
+            assert.throws(() => {
+                convert({}, '人物：{{#let}}let error');
+            }, Error);
+        });
+        it('#for #endfor 不匹配', () => {
+            assert.throws(() => {
+                convert({}, '{{#for name in ["张三", "李四", "王五"]}}人物：{{name}}');
+            }, Error);
+            assert.throws(() => {
+                convert({}, '以下人员:{{#if "赵六" in ["张三", "李四", "王五"]}}\n人物：{{name}}{{#endfor}}');
+            }, Error);
+        });
+        it('#if #endif 不匹配', () => {
+            assert.throws(() => {
+                convert({}, '以下人员:{{#if "赵六" in ["张三", "李四", "王五"]}}\n人物：{{name}}');
+            }, Error);
+            assert.throws(() => {
+                convert({}, '{{#for name in ["张三", "李四", "王五"]}}人物：{{name}}{{#endif}}');
+            }, Error);
+        });
+        it('{{ 与 }} 配套嵌套正确', () => {
+            assert.throws(() => {
+                convert({}, '人物：{{name"赵六"');
+            }, Error);
         });
     });
 });

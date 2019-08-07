@@ -46,36 +46,37 @@ export async function convert2file(entry, output) {
     return resultList;
 }
 
-function replace_vars(tags, express) {
+function compute_expression(tags, expression) {
+    // todo parse token include ""''
     for (let key in tags) {
         let reg = new RegExp(`\\b${key}\\b`, 'g');
-        express = express.replace(reg, `tags["${key}"]`);
+        expression = expression.replace(reg, `tags["${key}"]`);
     }
-    return express;
+    return eval(expression);
 }
 
-function do_for_express(tags, node) {
-    let [varstr, express] = node.text.split(/\s+in\s+/);
-    if (!express) throw Error("wrong #for statement!");
+function do_for_expression(tags, node) {
+    let [varstr, expression] = node.text.split(/\s+in\s+/);
+    if (!expression) throw Error("wrong #for statement!");
     let varlist = varstr.split(",").map(str => str.trim());
-    if (varlist.length > 2) throw Error('too many amount of comma in "#for key, value in express"');
-    express = eval(replace_vars(tags, express));
-    if (!express) throw Error('wrong express in "#for key, value in express"');
+    if (varlist.length > 2) throw Error('too many amount of comma in "#for key, value in expression"');
+    expression = compute_expression(tags, expression);
+    if (!expression) throw Error('wrong expression in "#for key, value in expression"');
     let [key, value] = varlist;
     let content = "";
     if(!value) {
-        for (const item of express) {
+        for (const item of expression) {
             content += convert_dom({
                 ...tags,
                 [key]: item
             }, node);
         }
     } else {
-        for (const index in express) {
+        for (const index in expression) {
             content += convert_dom({
                 ...tags,
                 [key]: index,
-                [value]: express[index]
+                [value]: expression[index]
             }, node);
         }
     }
@@ -90,23 +91,33 @@ function do_for_express(tags, node) {
 function convert_dom(tags, dom) {
     let content = '';
     dom.contents.forEach(node => {
-        if (node.type == "raw") content += node.text;
-        if (node.type == "express") {
-            let express = node.text;
-            content += eval(replace_vars(tags, express));
+        if (node.type == 'variable_declaration') {
+            let index = node.text.indexOf('=');
+            tags[node.text.substring(0, index)] = compute_expression(tags, node.text.substring(index+1));
+            return;
+        }
+        if (node.type == "raw") {
+            content += node.text;
+            return;
+        }
+        if (node.type == "expression") {
+            content += compute_expression(tags, node.text);
+            return;
         }
         if(node.type == "ifs"){
             let truenode = node.contents.find( node => {
                 if (node.type == "if" || node.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
-                    return eval(replace_vars(tags, node.text));
+                    return compute_expression(tags, node.text);
                 }
                 if (node.type == "else") return true;
                 return false;
             });
-            if (truenode) content += convert_dom(tags, truenode);
+            if (truenode) content += convert_dom({...tags}, truenode);
+            return;
         }
         if (node.type == "for") {
-            content += do_for_express(tags, node);
+            content += do_for_expression(tags, node);
+            return;
         }
     })
     return content;

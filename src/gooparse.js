@@ -17,80 +17,115 @@ let document;
 let current_node;
 
 /**
- * 分析precode, 归类为 if endif for endfor raw 五类的一个
+ * 分析precode, 归类为 if endif for endfor raw let comment  的一个
  * @param {string} precode 
  * @return {Goonode}
  */
 function parse_code(precode) { 
-    let contents = [];
+    let contents = [],
+        text;
 
-    // meet {{#if express }}
-    let match = /^\s*#if\s+([\s\S]*)$/.exec(precode);
-    if (match) {
+    // meet {{#if expression }}
+    text = precode.replace(/^\s*#if/,'');
+    if(text != precode){
+        let condition = /\s+([\s\S]*)$/.exec(text)[1].replace(/[\r\n]+/g, '').trim();
+        if (!condition) throw Error("#if must be followed a space and an expression!");
         return {
             "type": "ifs",
             "text": "queue of if",
             "contents": [ // must be [ if, elseif... elseif, else]
                 {
                     "type": "if",
-                    "text": match[1].replace(/[\r\n]+/g, '').trim(),
+                    "text": condition,
                     contents
                 },
             ]
         }
     }
 
-    // meet {{#elseif express }}
-    match = /^\s*#elseif\s+([\s\S]*)$/.exec(precode);
-    if (match) {
+    // meet {{#elseif expression }}
+    text = precode.replace(/^\s*#elseif/,'');
+    if (text != precode) {
+        let condition = /\s+([\s\S]*)$/.exec(text)[1].replace(/[\r\n]+/g, '').trim();
+        if (!condition) throw Error("#esleif must be followed a space and an expression!");
         return {
             "type": "elseif",
-            "text": match[1].replace(/[\r\n]+/g, '').trim(),
+            "text": condition,
             contents
         }
     }
 
     // meet {{#else }}
-    match = /^\s*#else\s*$/.exec(precode);
-    if (match) {
+    text = precode.replace(/^\s*#else/,'');
+    if(text != precode){
+        if(!/^(\s|$)/.test(text)) throw Error("#esle must be followed a space or nothing!");
+        let comment = text.trim();
         return {
             "type": "else",
-            "text": "else output",
+            "text": comment,
             contents
         }
     }
 
     // meet {{#endif}}
-    match = /^\s*#endif\s*([\s\S]*)$/.exec(precode);
-    if (match) {
+    text = precode.replace(/^\s*#endif/,'');
+    if (text != precode) {
+        if (!/^(\s|$)/.test(text)) throw Error("#endif must be followed a space or nothing!");
+        let comment = text.trim();
         return {
             "type": "endif",
-            "text": match[1].replace(/[\r\n]+/g, '').trim(),
+            "text": comment,
         }
     }
 
-    // meet {{#for express}}
-    match = /^\s*#for\s+([\s\S]*)$/.exec(precode);
-    if (match) {
+    // meet {{#for expression}}
+    text = precode.replace(/^\s*#for/,'');
+    if(text != precode){
+        let expression = /\s+([\s\S]*)$/.exec(text)[1].replace(/[\r\n]+/g, '').trim();
+        if (!expression) throw Error("#esleif must be followed a space and an expression!");
         return {
             "type": "for",
-            "text": match[1].replace(/[\r\n]+/g, '').trim(),
+            "text": expression,
             contents
         }
     }
 
     // meet {{#endfor}}
-    match = /^\s*#endfor\s*([\s\S]*)$/.exec(precode);
-    if (match) {
+    text = precode.replace(/^\s*#endfor/,'');
+    if (text != precode) {
+        if (!/^(\s|$)/.test(text)) throw Error("#endfor must be followed a space or nothing!");
+        let comment = text.trim();
         return {
             "type": "endfor",
-            "text": match[1].replace(/[\r\n]+/g, '').trim(),
+            "text": comment,
         }
     }
 
-    // meet {{express}}
+    // meet {{#let}}
+    text = precode.replace(/^\s*#let/,'');
+    if(text != precode){
+        let match = /\s+(\w+)\s*=\s*([\s\S]+)$/.exec(text);
+        let varname = match[1].trim();
+        let expression = match[2].replace(/[\r\n]+/g, '').trim();
+        if (!varname || !expression) throw Error("#let must be followed a space and an assignment expression!");
+        return {
+            "type": "variable_declaration",
+            "text": `${varname}=${expression}`,
+        }
+    }
+
+    // meet {{#}}
+    text = precode.replace(/^\s*#/,'');
+    if(text != precode){
+        return {
+            "type": "comment",
+            "text": text.trim(),
+        }
+    }
+
+    // meet {{expression}}
     return {
-        "type": "express",
+        "type": "expression",
         "text": precode,
         contents
     }
@@ -162,9 +197,16 @@ function gen_tree(code) {
         stack_pop(); // *node[...for[...]]
         return;
     }
-    if (code.type == "express" || code.type == "raw") {
+    if (code.type == "expression" || code.type == "raw") {
         // *node[...]
-        current_node.contents.push(code); // *node[...*express|raw[] ]
+        current_node.contents.push(code); // *node[...*expression|raw[] ]
+        return;
+    }
+    if (code.type == "variable_declaration") {
+        current_node.contents.push(code);
+        return;
+    }
+    if (code.type == "comment") {
         return;
     }
     throw Error("wrong node");
