@@ -13,6 +13,7 @@ import {
 import {
     parseToDOM
 } from "./gooparse.js";
+import iconv from 'iconv-lite';
 
 /**
  * 
@@ -27,7 +28,7 @@ export function convert(tags, template) {
  * @param {string | null} output output file pathname, or a null for output no file but only return a array of string. 
  * @return {Promise<string[]>} 
  */
-export async function convert2file(entry, output) {
+export async function convert2file(entry, output, OE="utf8") {
     let savetofile = !!output;
     let resultList = [];
     let rules = entry.rules;
@@ -41,7 +42,8 @@ export async function convert2file(entry, output) {
         };
         let content = convert(rule.tags, template);
         resultList.push(content);
-        if (savetofile) await fs.writeFile(output_file, content, option);
+        let buff = iconv.encode(content, OE);
+        if (savetofile) await fs.writeFile(output_file, buff, option);
     }
     return resultList;
 }
