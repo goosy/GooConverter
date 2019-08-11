@@ -101,13 +101,13 @@ function parse_code(precode) {
         }
     }
 
-    // meet {{#let}}
-    text = precode.replace(/^\s*#let/,'');
+    // meet {{#var}}
+    text = precode.replace(/^\s*#var/,'');
     if(text != precode){
         let match = /\s+(\w+)\s*=\s*([\s\S]+)$/.exec(text);
         let varname = match[1].trim();
         let expression = match[2].replace(/[\r\n]+/g, '').trim();
-        if (!varname || !expression) throw Error("#let must be followed a space and an assignment expression!");
+        if (!varname || !expression) throw Error("#var must be followed a space and an assignment expression!");
         return {
             "type": "variable_declaration",
             "text": `${varname}=${expression}`,
@@ -150,15 +150,19 @@ function stack_pop() {
  */
 
 function gen_tree(code) { 
+
+    // ifs[if[]]
     if (code.type == "ifs") {
-        // *node[...]
-        stack_push(code); // node[... ifs[...*if[] ] ]
+        // *node[...]*
+        stack_push(code); // node[... ifs[*if[]* ] ]
         return;
     }
+    
+    // if|elseif[]
     if (code.type == "elseif" || code.type == "else") {
-        // ifs[...*if|elseif[...]]
         
         // 不能和上一个 {{#if}} 或 {{#elseif}} 匹配，报错
+        // ifs[...*if|elseif[...]]
         let type = current_node.type;
         if (type != "if" && type != "elseif") throw Error("wrong pair of IF!");
         
@@ -170,42 +174,54 @@ function gen_tree(code) {
         
         return;
     }
+
+    // endif
     if (code.type == "endif") {
-        // node[...ifs[...*if|elseif|else[...]]]
         
         // 不能和上一个 {{#if}} 或 {{#elseif}} 或 {{#else}} 匹配，报错
+        // node[...ifs[...*if|elseif|else[...]*]]
         let type = current_node.type;
         if (type != "if" && type != "elseif" && type != "else") throw Error("wrong pair of IF!");
         
         // 出栈，如不在 ifs 队列中，报错
-        stack_pop(); // node[...*ifs[...if|elseif|else[...]]]
+        stack_pop(); // node[...*ifs[...if|elseif|else[...]]*]
         if (current_node.type != "ifs") throw Error("wrong pair of IF!");
 
         // 再次出栈
-        stack_pop(); // *node[...ifs[...if|elseif|else[...]]]
-        return;
-    }
-    if (code.type == "for") {
-        // *node[...]
-        stack_push(code); // node[...*for[]]
+        stack_pop(); // *node[...ifs[...if|elseif|else[...]]]*
         return;
     }
 
+    // for[]
+    if (code.type == "for") {
+        // *node[...]*
+        stack_push(code); // node[...*for[]*]
+        return;
+    }
+
+    // endfor
     if (code.type == "endfor") {
-        // node[...*for[...]]
+        // node[...*for[...]*]
         if (current_node.type != "for") throw Error("wrong pair of FOR!");
-        stack_pop(); // *node[...for[...]]
+        stack_pop(); // *node[...for[...]]*
         return;
     }
+
+    // expression|raw[]
     if (code.type == "expression" || code.type == "raw") {
-        // *node[...]
-        current_node.contents.push(code); // *node[...*expression|raw[] ]
+        // *node[...]*
+        current_node.contents.push(code); // *node[...*expression|raw[]* ]
         return;
     }
+
+    // var[]
     if (code.type == "variable_declaration") {
-        current_node.contents.push(code);
+        // *node[...]*
+        current_node.contents.push(code); //*node[...*var[]* ]
         return;
     }
+
+    // #
     if (code.type == "comment") {
         return;
     }

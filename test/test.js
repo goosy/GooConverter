@@ -48,9 +48,9 @@ describe('convert(tags, template)', () => {
                 "吴七"
             );
         });
-        it('#let assignment expression', () => {
+        it('#var assignment expression', () => {
             assert.equal(
-                convert({}, '{{#let r = 5*8/2 }}{{r}}'),
+                convert({}, '{{#var r = 5*8/2 }}{{r}}'),
                 "20"
             );
         });
@@ -76,7 +76,7 @@ describe('convert(tags, template)', () => {
                 convert({}, '{{#for   }}if{{#endif}}');
             }, Error);
             assert.throws(() => {
-                convert({}, '人物：{{#let}}let error');
+                convert({}, '人物：{{#var}}let error');
             }, Error);
         });
         it('#for #endfor 不匹配', () => {

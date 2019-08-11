@@ -7,7 +7,7 @@ npm install gooconverter
 
 * {{表达式}}
     计算表达式，并在所在位置替换成结果
-* {{#let 赋值表达式}}
+* {{#var 赋值表达式}}
     形成一个新的变量，加入到tags里。
 * {{#if 条件1}}结果1 {{#elseif 条件2}} 结果2 {{#else}}其它结果 {{#endif}}
     根据条件决定是否显示对应结果，#elseif #else 是可选的
@@ -37,7 +37,7 @@ let tags = {
     }]
 };
 let template = `station: {{name}}
-{{#let ID = ID-8000 }}{{# 说明：取ID后2位形成编号
+{{#var ID = ID-8000 }}{{# 说明：取ID后2位形成编号
 }}station ID: {{ID}}
 people:{{ #for people in peoples}}{{ #if people.age > 18  }}
 * {{people.name}}{{#endif}}{{ #endfor}}
