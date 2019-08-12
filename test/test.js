@@ -17,7 +17,7 @@ describe('convert(tags, template)', () => {
             );
             assert.equal( // "express"
                 convert({"name": "赵六"}, '人物：{{"name"}}'),
-                "人物：赵六"
+                "人物：name"
             );
             assert.equal(
                 convert({"length": 8, 'index': 6}, 'length > index：{{length > index}}'),

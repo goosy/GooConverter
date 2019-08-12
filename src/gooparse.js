@@ -1,11 +1,66 @@
 /**
- * @file 拆分模板为语法树
- * @author 'goosy.jo@gmail.com'
+ * @file 解析模板为语法树
+ * @author goosy<'goosy.jo@gmail.com'>
  */
 
 /**
- * @typedef {{type:string, text:string, contents:Goonode[]}} Goonode
+ * @typedef {{type:string, text:string, expression:{} contents:Goonode[]}} Goonode
  */
+
+import esprima from "esprima";
+/**
+ * 
+ * @param {string} code 
+ */
+export function parse_expression(code) {
+    let error = Error("expression syntax error");
+    if (typeof code != 'string') throw error;
+    let ast = esprima.parseScript(code);
+    if (ast.type != "Program" || ast.body.length != 1) throw error;
+    if (ast.body[0].type != 'ExpressionStatement') throw error;
+    let expression = ast.body[0].expression;
+    let {
+        type,
+        operator
+    } = expression;
+    // 仅支持以下表达式和列出的操作符
+    if (
+        type == 'AssignmentExpression' &&
+        operator == '='
+    ) return expression;
+    if (type == 'SequenceExpression'){ // key, value in array
+        let expressions = expression.expressions;
+        if(
+            expressions.length == 2 &&
+            expressions[0].type == 'Identifier' &&
+            expressions[1].type == 'BinaryExpression' &&
+            expressions[1].left.type == 'Identifier' &&
+            expressions[1].operator == 'in'
+        ){
+            let expression = expressions[1];
+            expression.left = [expressions[0], expression.left];
+            return expression;
+        }
+    }
+    if (
+        type == 'Identifier' ||
+        type == 'Literal' ||
+        type == 'ArrayExpression' ||
+        type == 'MemberExpression' ||
+        type == 'StaticMemberExpression'
+    ) return expression;
+    if (
+        type == 'UnaryExpression' && ['+', '-', '~', '!'].includes(operator)
+    ) return expression;
+    if (
+        type == 'BinaryExpression' && ['in', '+', '-', '*', '/', '%', '==', '!=', '<', '>', '<=', '>='].includes(operator)
+    ) return expression;
+    if (
+        type == 'LogicalExpression' &&
+        (operator == '||' || operator == '&&')
+    ) return expression;
+    throw error;
+}
 
 /**
  * @type {Goonode} document
@@ -21,22 +76,23 @@ let current_node;
  * @param {string} precode 
  * @return {Goonode}
  */
-function parse_code(precode) { 
-    let contents = [],
-        text;
+function parse_code(precode) {
+    let contents = [];
 
     // meet {{#if expression }}
-    text = precode.replace(/^\s*#if/,'');
-    if(text != precode){
-        let condition = /\s+([\s\S]*)$/.exec(text)[1].replace(/[\r\n]+/g, '').trim();
-        if (!condition) throw Error("#if must be followed a space and an expression!");
+    if (precode.startsWith('#if')) {
+        let error = Error("#if expression syntax error!");
+        let text = precode.replace(/^#if\s+/, '');
+        if (text == precode) throw error;
+        let expression = parse_expression(text);
+        if (!expression) throw error;
         return {
             "type": "ifs",
             "text": "queue of if",
             "contents": [ // must be [ if, elseif... elseif, else]
                 {
                     "type": "if",
-                    "text": condition,
+                    expression,
                     contents
                 },
             ]
@@ -44,21 +100,23 @@ function parse_code(precode) {
     }
 
     // meet {{#elseif expression }}
-    text = precode.replace(/^\s*#elseif/,'');
-    if (text != precode) {
-        let condition = /\s+([\s\S]*)$/.exec(text)[1].replace(/[\r\n]+/g, '').trim();
-        if (!condition) throw Error("#esleif must be followed a space and an expression!");
+    if (precode.startsWith('#elseif')) {
+        let error = Error("#elseif expression syntax error!");
+        let text = precode.replace(/^#elseif\s+/, '');
+        if (text == precode) throw error;
+        expression = parse_expression(text);
+        if (!expression) throw error;
         return {
             "type": "elseif",
-            "text": condition,
+            expression,
             contents
         }
     }
 
     // meet {{#else }}
-    text = precode.replace(/^\s*#else/,'');
-    if(text != precode){
-        if(!/^(\s|$)/.test(text)) throw Error("#esle must be followed a space or nothing!");
+    if (precode.startsWith('#else')) {
+        let text = precode.substr(5);
+        if (!/^(\s|$)/.test(text)) throw Error("#esle must be followed a space or nothing!");
         let comment = text.trim();
         return {
             "type": "else",
@@ -68,8 +126,8 @@ function parse_code(precode) {
     }
 
     // meet {{#endif}}
-    text = precode.replace(/^\s*#endif/,'');
-    if (text != precode) {
+    if (precode.startsWith('#endif')) {
+        let text = precode.substr(6);
         if (!/^(\s|$)/.test(text)) throw Error("#endif must be followed a space or nothing!");
         let comment = text.trim();
         return {
@@ -79,20 +137,23 @@ function parse_code(precode) {
     }
 
     // meet {{#for expression}}
-    text = precode.replace(/^\s*#for/,'');
-    if(text != precode){
-        let expression = /\s+([\s\S]*)$/.exec(text)[1].replace(/[\r\n]+/g, '').trim();
-        if (!expression) throw Error("#esleif must be followed a space and an expression!");
+    if (precode.startsWith('#for')) {
+        let error = Error("#for expression syntax error!");
+        let text = precode.replace(/^#for\s+/, '');
+        if (text == precode) throw error;
+        let expression = parse_expression(text);
+        if (!expression && expression.operator != 'in') throw error;
         return {
             "type": "for",
-            "text": expression,
+            "text": "for statement",
+            expression,
             contents
         }
     }
 
     // meet {{#endfor}}
-    text = precode.replace(/^\s*#endfor/,'');
-    if (text != precode) {
+    if (precode.startsWith('#endfor')) {
+        let text = precode.substr(7);
         if (!/^(\s|$)/.test(text)) throw Error("#endfor must be followed a space or nothing!");
         let comment = text.trim();
         return {
@@ -102,40 +163,43 @@ function parse_code(precode) {
     }
 
     // meet {{#var}}
-    text = precode.replace(/^\s*#var/,'');
-    if(text != precode){
-        let match = /\s+(\w+)\s*=\s*([\s\S]+)$/.exec(text);
-        let varname = match[1].trim();
-        let expression = match[2].replace(/[\r\n]+/g, '').trim();
-        if (!varname || !expression) throw Error("#var must be followed a space and an assignment expression!");
+    if (precode.startsWith('#var')) {
+        let error = Error("#var syntax error!");
+        let text = precode.replace(/^#var\s+/, '');
+        if (text == precode) throw error;
+        let expression = parse_expression(text);
+        if (!expression) throw error;
         return {
             "type": "variable_declaration",
-            "text": `${varname}=${expression}`,
+            expression,
         }
     }
 
     // meet {{#}}
-    text = precode.replace(/^\s*#/,'');
-    if(text != precode){
+    if (precode.startsWith('#')) {
         return {
             "type": "comment",
-            "text": text.trim(),
+            "text": precode.substr(1).trim(),
         }
     }
 
     // meet {{expression}}
+    let error = Error("expression syntax error!");
+    let expression = parse_expression(precode);
+    if (!expression) throw error;
     return {
         "type": "expression",
-        "text": precode,
+        "text": "expression",
+        expression,
         contents
     }
 }
 
-function stack_push(code) { 
+function stack_push(code) {
     code.parents = current_node;
     current_node.contents.push(code);
     current_node = code;
-    if (code.type == "ifs") { 
+    if (code.type == "ifs") {
         current_node.contents[0].parents = current_node;
         current_node = current_node.contents[0];
     }
@@ -149,7 +213,7 @@ function stack_pop() {
  * @param {Goonode} code 
  */
 
-function gen_tree(code) { 
+function gen_tree(code) {
 
     // ifs[if[]]
     if (code.type == "ifs") {
@@ -157,32 +221,32 @@ function gen_tree(code) {
         stack_push(code); // node[... ifs[*if[]* ] ]
         return;
     }
-    
+
     // if|elseif[]
     if (code.type == "elseif" || code.type == "else") {
-        
+
         // 不能和上一个 {{#if}} 或 {{#elseif}} 匹配，报错
         // ifs[...*if|elseif[...]]
         let type = current_node.type;
         if (type != "if" && type != "elseif") throw Error("wrong pair of IF!");
-        
+
         // 出栈
         stack_pop(); // *ifs[...if|elseif[...]]
-        
+
         // 重新入栈
-        stack_push(code);// ifs[...if|elseif[...], *elseif|else[] ] 
-        
+        stack_push(code); // ifs[...if|elseif[...], *elseif|else[] ] 
+
         return;
     }
 
     // endif
     if (code.type == "endif") {
-        
+
         // 不能和上一个 {{#if}} 或 {{#elseif}} 或 {{#else}} 匹配，报错
         // node[...ifs[...*if|elseif|else[...]*]]
         let type = current_node.type;
         if (type != "if" && type != "elseif" && type != "else") throw Error("wrong pair of IF!");
-        
+
         // 出栈，如不在 ifs 队列中，报错
         stack_pop(); // node[...*ifs[...if|elseif|else[...]]*]
         if (current_node.type != "ifs") throw Error("wrong pair of IF!");
@@ -236,12 +300,12 @@ export function parseToDOM(template) {
 
     // init document
     current_node = document = {
-        type:"root",
+        type: "root",
         text: "",
-        contents:[]
+        contents: []
     };
-    let reg_left = /\{\{/g; // 寻找 '{{' 
-    let reg_right = /\}\}/g; // 寻找 '{{' 
+    let reg_left = /\{\{\s*/g; // 寻找 '{{' 
+    let reg_right = /\s*\}\}/g; // 寻找 '}}' 
     let current_index = 0;
 
     // 寻找{{.*}}直至完成。当正则式搜索不到匹配时，lastIndex会重新变成0

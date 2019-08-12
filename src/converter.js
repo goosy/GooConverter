@@ -28,7 +28,7 @@ export function convert(tags, template) {
  * @param {string | null} output output file pathname, or a null for output no file but only return a array of string. 
  * @return {Promise<string[]>} 
  */
-export async function convert2file(entry, output, OE="utf8") {
+export async function convert2file(entry, output, OE = "utf8") {
     let savetofile = !!output;
     let resultList = [];
     let rules = entry.rules;
@@ -48,37 +48,88 @@ export async function convert2file(entry, output, OE="utf8") {
     return resultList;
 }
 
-function compute_expression(tags, expression) {
-    // todo parse token include ""''
-    for (let key in tags) {
-        let reg = new RegExp(`\\b${key}\\b`, 'g');
-        expression = expression.replace(reg, `tags["${key}"]`);
+function getExpressionResult(tags, expression) {
+    // 'Identifier' 'AssignmentExpression' 'BinaryExpression' 'Literal'
+    if (expression.type == "Literal") return expression.value;
+    if (expression.type == "Identifier") {
+        let value = tags[expression.name];
+        return value ? value : expression.name;
     }
-    return eval(expression);
+    if (expression.type == "ArrayExpression") {
+        return expression.elements.map(el => getExpressionResult(tags, el));
+    }
+    if (expression.type == "MemberExpression" || expression.type == "StaticMemberExpression") {
+        let obj = getExpressionResult(tags, expression.object);
+        let property = getExpressionResult(tags, expression.property);
+        return obj[property];
+    }
+    if (expression.type == 'UnaryExpression') {
+        let result = getExpressionResult(tags, expression.argument);
+        if (expression.operator == '+') return +result;
+        if (expression.operator == '-') return -result;
+        if (expression.operator == '~') return ~result;
+        if (expression.operator == '!') return !result;
+    }
+    if (expression.type == 'BinaryExpression' || expression.type == 'LogicalExpression') {
+        let left = getExpressionResult(tags, expression.left);
+        let right = getExpressionResult(tags, expression.right);
+        switch (expression.operator) {
+            case '+':
+                return left + right;
+            case '-':
+                return left - right;
+            case '*':
+                return left * right;
+            case '/':
+                return left / right;
+            case '%':
+                return left % right;
+            case '==':
+                return left == right;
+            case '!=':
+                return left != right;
+            case 'in':
+                return left in right;
+            case '<':
+                return left < right;
+            case '>':
+                return left > right;
+            case '<=':
+                return left <= right;
+            case '>=':
+                return left >= right;
+            case '||':
+                return left || right;
+            case '&&':
+                return left && right;
+        }
+    }
+    throw Error(`not expression: "${expression.type}"`);
 }
 
 function do_for_expression(tags, node) {
-    let [varstr, expression] = node.text.split(/\s+in\s+/);
-    if (!expression) throw Error("wrong #for statement!");
-    let varlist = varstr.split(",").map(str => str.trim());
-    if (varlist.length > 2) throw Error('too many amount of comma in "#for key, value in expression"');
-    expression = compute_expression(tags, expression);
-    if (!expression) throw Error('wrong expression in "#for key, value in expression"');
-    let [key, value] = varlist;
-    let content = "";
-    if(!value) {
-        for (const item of expression) {
+    let key, 
+        value, 
+        content = '',
+        left = node.expression.left,
+        right = getExpressionResult(tags, node.expression.right);
+    if (!right) throw Error("wrong #for statement!");
+    if (left.type == 'Identifier'){ 
+        value = left.name;
+        for (const item of right) {
             content += convert_dom({
                 ...tags,
-                [key]: item
+                [value]: item
             }, node);
         }
     } else {
-        for (const index in expression) {
+        key = left[0].name;
+        value = left[1].name;
+        for (const index in right) {
             content += convert_dom({
                 ...tags,
                 [key]: index,
-                [value]: expression[index]
+                [value]: right[index]
             }, node);
         }
     }
@@ -94,8 +145,7 @@ function convert_dom(tags, dom) {
     let content = '';
     dom.contents.forEach(node => {
         if (node.type == 'variable_declaration') {
-            let index = node.text.indexOf('=');
-            tags[node.text.substring(0, index)] = compute_expression(tags, node.text.substring(index+1));
+            tags[node.expression.left.name] = getExpressionResult(tags, node.expression.right);
             return;
         }
         if (node.type == "raw") {
@@ -103,18 +153,20 @@ function convert_dom(tags, dom) {
             return;
         }
         if (node.type == "expression") {
-            content += compute_expression(tags, node.text);
+            content += getExpressionResult(tags, node.expression);
             return;
         }
-        if(node.type == "ifs"){
-            let truenode = node.contents.find( node => {
+        if (node.type == "ifs") {
+            let truenode = node.contents.find(node => {
                 if (node.type == "if" || node.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
-                    return compute_expression(tags, node.text);
+                    return getExpressionResult(tags, node.expression);
                 }
                 if (node.type == "else") return true;
                 return false;
             });
-            if (truenode) content += convert_dom({...tags}, truenode);
+            if (truenode) content += convert_dom({
+                ...tags
+            }, truenode);
             return;
         }
         if (node.type == "for") {
