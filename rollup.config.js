@@ -23,5 +23,5 @@ export default {
 		json(),
 		production && terser() // minify, but only in production
 	],
-	external: ['fs', 'path', 'net', 'iconv-lite', 'esprima'],
+	external: ['fs', 'path', 'net'],
 }

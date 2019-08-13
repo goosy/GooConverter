@@ -1,6 +1,6 @@
 export {
     convert,
-    convert2file
+    convertRules
 } from "./converter.js";
 
 export {

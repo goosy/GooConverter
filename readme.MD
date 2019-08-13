@@ -1,22 +1,24 @@
 # 模板替换
 
 ## 安装
-npm install gooconverter
+
+`~~npm install gooconverter~~`
 
 ## 替换宏
 
-* {{表达式}}
-    计算表达式，并在所在位置替换成结果
-* {{#var 赋值表达式}}
+* `{{表达式}}`
+    计算表达式，并在所在位置替换成结果。
+* `{{#var 赋值表达式}}`
     形成一个新的变量，加入到tags里。
-* {{#if 条件1}}结果1 {{#elseif 条件2}} 结果2 {{#else}}其它结果 {{#endif}}
-    根据条件决定是否显示对应结果，#elseif #else 是可选的
-* {{#for 变量 in 枚举范围}} {{变量}} {{#endfor}}
-    循环输出，遍历所有的枚举
-* {{# 注释}}
-    仅用于说明上下文相关，不产生输出
+* `{{#if 条件1}}` 结果1 `{{#elseif 条件2}}` 结果2 `{{#else}`}其它结果 `{{#endif}}`
+    根据条件决定是否显示对应结果，`#elseif` `#else` 是可选的，`#elseif` 可以有多个。
+* `{{#for var1 in Iterator}}` for循环体内可用`{{var1}}`变量 `{{#endfor}}`
+    循环输出，遍历所有的枚举。
+* `{{# 注释}}`
+    仅用于说明上下文相关，不产生输出。
 
 ## 例子
+
 ```javascript
 import {convert} from "gooconverter";
 let tags = {
@@ -44,7 +46,9 @@ people:{{ #for people in peoples}}{{ #if people.age > 18  }}
 `
 console.log(convert(tags, template));
 ```
+
 则输出：
+
 ```plaintext
 station: GD8
 station ID: 78
@@ -52,7 +56,6 @@ people:
 * 李四
 * 王五
 * 赵六
-
 ```
 
-如果要应用多条转换并各自输出到文件，用 convert2file 函数，见 ./example/example.entry.js
+如果要应用多条转换规则，用`convertRules`函数，见 ./example/example.entry.js

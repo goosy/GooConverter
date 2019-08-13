@@ -12,7 +12,7 @@ import esprima from "esprima";
  * 
  * @param {string} code 
  */
-export function parse_expression(code) {
+function parse_expression(code) {
     let error = Error("expression syntax error");
     if (typeof code != 'string') throw error;
     let ast = esprima.parseScript(code);

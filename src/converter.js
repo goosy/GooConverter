@@ -1,19 +1,12 @@
 /**
  * @file 实现基于转换规则和模板转换
  * @author goosy.jo@gmail.com
- * @typedef {{rules:Rule[], template:string}} Entry rules：转换规则 template：带指令的模板
- * @typedef {{name:string, output_file:string?, tags:Object} Rule 
+ * @typedef {Rule[]} Rules 转换规则表
+ * @typedef {{name:string, tags:Object}} Rule 转换规则
  */
-import {
-    promises as fs
-} from "fs";
-import {
-    join
-} from "path";
 import {
     parseToDOM
 } from "./gooparse.js";
-import iconv from 'iconv-lite';
 
 /**
  * 
@@ -23,29 +16,19 @@ import iconv from 'iconv-lite';
 export function convert(tags, template) {
     return convert_dom(tags, parseToDOM(template));
 }
+
 /**
- * @param {Entry} entry 
- * @param {string | null} output output file pathname, or a null for output no file but only return a array of string. 
- * @return {Promise<string[]>} 
+ * @param {Rules} rules 
+ * @param {string} template  
+ * @return {IterableIterator<{"name": string, "content": string}>} 
  */
-export async function convert2file(entry, output, OE = "utf8") {
-    let savetofile = !!output;
-    let resultList = [];
-    let rules = entry.rules;
-    let template = entry.template;
-    let output_file;
-    for (let rule of rules) { // for-of 实现异步顺序执行
-        if (savetofile) output_file = join(output, `./${rule.output_file}`);
-        let option = {
-            "encoding": "utf8",
-            ...rule.option,
+export function* convertRules(rules, template) {
+    for (const rule of rules) {
+        yield {
+            "name": rule.name,
+            "content": convert(rule.tags, template)
         };
-        let content = convert(rule.tags, template);
-        resultList.push(content);
-        let buff = iconv.encode(content, OE);
-        if (savetofile) await fs.writeFile(output_file, buff, option);
     }
-    return resultList;
 }
 
 function getExpressionResult(tags, expression) {
