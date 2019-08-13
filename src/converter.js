@@ -53,7 +53,7 @@ function getExpressionResult(tags, expression) {
     if (expression.type == "Literal") return expression.value;
     if (expression.type == "Identifier") {
         let value = tags[expression.name];
-        return value ? value : expression.name;
+        return value != undefined ? value : expression.name;
     }
     if (expression.type == "ArrayExpression") {
         return expression.elements.map(el => getExpressionResult(tags, el));
@@ -108,32 +108,42 @@ function getExpressionResult(tags, expression) {
 }
 
 function do_for_expression(tags, node) {
-    let key, 
-        value, 
+    let key,
+        value,
+        list,
         content = '',
         left = node.expression.left,
         right = getExpressionResult(tags, node.expression.right);
     if (!right) throw Error("wrong #for statement!");
-    if (left.type == 'Identifier'){ 
+    let isArray = Array.isArray(right);
+    // {{#for v in object}}
+    if (left.type == 'Identifier') {
         value = left.name;
-        for (const item of right) {
+        list = Object.values(right);
+        for (const item of list) {
             content += convert_dom({
                 ...tags,
                 [value]: item
             }, node);
         }
-    } else {
+        return content;
+    }
+    // {{#for k, v in object}}
+    if (left.type == "IdentifierList") {
         key = left[0].name;
         value = left[1].name;
-        for (const index in right) {
+        list = Object.entries(right);
+        for (let [k, v] of list) {
+            k = isArray ? parseInt(k) : k;
             content += convert_dom({
                 ...tags,
-                [key]: index,
-                [value]: right[index]
+                [key]: k,
+                [value]: v
             }, node);
         }
+        return content;
     }
-    return content;
+    throw Error("wrong #for statement!");
 }
 
 /**

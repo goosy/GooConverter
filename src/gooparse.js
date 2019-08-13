@@ -28,17 +28,18 @@ export function parse_expression(code) {
         type == 'AssignmentExpression' &&
         operator == '='
     ) return expression;
-    if (type == 'SequenceExpression'){ // key, value in array
+    if (type == 'SequenceExpression') { // key, value in array
         let expressions = expression.expressions;
-        if(
+        if (
             expressions.length == 2 &&
             expressions[0].type == 'Identifier' &&
             expressions[1].type == 'BinaryExpression' &&
             expressions[1].left.type == 'Identifier' &&
             expressions[1].operator == 'in'
-        ){
+        ) {
             let expression = expressions[1];
             expression.left = [expressions[0], expression.left];
+            expression.left.type = 'IdentifierList';
             return expression;
         }
     }
