@@ -1,6 +1,6 @@
 {
 	"name": "gooconverter",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"type": "module",
 	"description": "gen string form template and save to file",
 	"main": "./lib/index.js",
@@ -11,10 +11,9 @@
 	"engines": {
 		"node": ">=12.6.0 <13.0.0"
 	},
-	"dependencies": {
-		"esprima": "^4.0.1"
-	},
+	"dependencies": {},
 	"devDependencies": {
+		"esprima": "^4.0.1",
 		"@types/esprima": "^4.0.2",
 		"eslint": "^6.1.0",
 		"mocha": "^6.2.0",
@@ -30,7 +29,8 @@
 	"scripts": {
 		"start": "rollup -c",
 		"dev": "rollup -c -w",
-		"test": "mocha"
+		"test": "mocha",
+		"prepare": "npm start"
 	},
 	"keywords": [
 		"converter"
