@@ -41,9 +41,11 @@ function getExpressionResult(tags, expression) {
     if (expression.type == "ArrayExpression") {
         return expression.elements.map(el => getExpressionResult(tags, el));
     }
-    if (expression.type == "MemberExpression" || expression.type == "StaticMemberExpression") {
+    if (expression.type == "MemberExpression") {
         let obj = getExpressionResult(tags, expression.object);
-        let property = getExpressionResult(tags, expression.property);
+        let property = expression.computed ?
+            getExpressionResult(tags, expression.property) :
+            expression.property.name;        
         return obj[property];
     }
     if (expression.type == 'UnaryExpression') {

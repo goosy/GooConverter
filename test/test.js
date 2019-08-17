@@ -10,8 +10,8 @@ describe('convert(tags, template)', () => {
             assert.equal( // 测试 变量 括号中变量 含变量的字符串
                 convert({
                     "name": "赵六"
-                }, '人物：{{name}} {{(name)}} {{"name"}}'),
-                "人物：赵六 赵六 name"
+                }, '人物：{{name}} {{(name)}} {{"name"+name}}'),
+                "人物：赵六 赵六 name赵六"
             );
             assert.equal( // 测试数字的二元运算 + - * / %
                 convert(
@@ -26,6 +26,17 @@ describe('convert(tags, template)', () => {
                     '步行外出:{{go && !car}} \n乘车外出：{{go &&car}} \n有外出：{{go||car}}'
                 ),
                 "步行外出:true \n乘车外出：false \n有外出：true"
+            );
+            assert.equal( // 测试成员运算符 . []
+                convert({
+                    "ID": 1,
+                    "prop": "ID",
+                    "conn": {
+                        "ID": 2,
+                        "addr": {"ID": 3, "value": "xian rd. 128"}
+                    }
+                }, '{{ID}} {{conn.ID}} {{conn["ID"]}} {{conn[prop]}} {{conn.addr.ID}} {{conn.addr["value"]}}'),
+                "1 2 2 2 3 xian rd. 128"
             );
         });
         it('#for loop', () => {
@@ -50,7 +61,7 @@ describe('convert(tags, template)', () => {
                 ),
                 "人员:\n张三\n18\n男\n"
             );
-            assert.equal( // 测试对象带序号遍历
+            assert.equal( // 测试对象带键值遍历
                 convert(
                     {person:{"name":"张三", "age":18, "gender":"男"}}, 
                     '人员:\n{{#for pname, prop in person}}{{pname}}:{{prop}}\n{{#endfor}}'

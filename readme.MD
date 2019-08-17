@@ -2,7 +2,7 @@
 
 ## 安装
 
-`~~npm install gooconverter~~`
+`npm install gooconverter`
 
 ## 替换宏
 

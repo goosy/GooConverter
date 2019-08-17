@@ -47,8 +47,7 @@ function parse_expression(code) {
         type == 'Identifier' ||
         type == 'Literal' ||
         type == 'ArrayExpression' ||
-        type == 'MemberExpression' ||
-        type == 'StaticMemberExpression'
+        type == 'MemberExpression'
     ) return expression;
     if (
         type == 'UnaryExpression' && ['+', '-', '~', '!'].includes(operator)
