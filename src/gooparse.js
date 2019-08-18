@@ -54,6 +54,12 @@ function isLimitedExpression(expression){
         isLimitedExpression(expression.left) &&
         isLimitedExpression(expression.right) 
     ) return true;
+    if ( // 调动运算符只支持 range()
+        type == "CallExpression" &&
+        expression.callee.type == 'Identifier' &&
+        expression.callee.name == 'range' &&
+        expression.arguments.length <= 3
+    ) return true;
     return false;
 }
 

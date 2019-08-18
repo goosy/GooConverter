@@ -13,11 +13,11 @@
 	},
 	"dependencies": {},
 	"devDependencies": {
-		"esprima": "^4.0.1",
 		"@types/esprima": "^4.0.2",
 		"eslint": "^6.1.0",
+		"esprima": "^4.0.1",
 		"mocha": "^6.2.0",
-		"rollup": "^1.17.0",
+		"rollup": "^1.19.4",
 		"rollup-plugin-commonjs": "^10.0.0",
 		"rollup-plugin-json": "^4.0.0",
 		"rollup-plugin-node-resolve": "^5.0.3",

@@ -31,12 +31,36 @@ export function* convertRules(rules, template) {
     }
 }
 
+/**
+ * 
+ * @param {Object} tags dict of tag and value
+ * @param {AST} expression 
+ */
 function getExpressionResult(tags, expression) {
+    function range(start, end, step){
+        if (start === undefined) return [];
+        if (end === undefined) {
+            end = start
+            start = 0
+        }
+        let direct = start < end;
+        step = step === undefined ? (direct ? 1 : -1) : step;
+        let ret = [], index = start;
+        while (direct ? index < end : index > end) {
+            ret.push(index);
+            index += step;
+        }
+        return ret;
+    }
     // 'Identifier' 'AssignmentExpression' 'BinaryExpression' 'Literal'
     if (expression.type == "Literal") return expression.value;
     if (expression.type == "Identifier") {
         let value = tags[expression.name];
         return value != undefined ? value : expression.name;
+    }
+    if (expression.type == "CallExpression") {
+        let argus = expression.arguments.map(argu => getExpressionResult(tags, argu));
+        return range(...argus);
     }
     if (expression.type == "ArrayExpression") {
         return expression.elements.map(el => getExpressionResult(tags, el));
