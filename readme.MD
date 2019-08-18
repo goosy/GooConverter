@@ -7,9 +7,7 @@
 ## 替换宏
 
 * `{{表达式}}`
-    计算表达式，并在所在位置替换成结果。
-* `{{#var 赋值表达式}}`
-    形成一个新的变量，加入到tags里。
+    计算表达式，并在所在位置替换成结果。赋值表达式不会产生替换，只建立更新变量。
 * `{{#if 条件1}}` 结果1 `{{#elseif 条件2}}` 结果2 `{{#else}`}其它结果 `{{#endif}}`
     根据条件决定是否显示对应结果，`#elseif` `#else` 是可选的，`#elseif` 可以有多个。
 * `{{#for var1 in Iterator}}` for循环体内可用`{{var1}}`变量 `{{#endfor}}`
@@ -39,7 +37,7 @@ let tags = {
     }]
 };
 let template = `station: {{name}}
-{{#var ID = ID-8000 }}{{# 说明：取ID后2位形成编号
+{{ID = ID-8000 }}{{# 说明：取ID后2位形成编号
 }}station ID: {{ID}}
 people:{{ #for people in peoples}}{{ #if people.age > 18  }}
 * {{people.name}}{{#endif}}{{ #endfor}}

@@ -12,13 +12,13 @@ let tags = {
     }]
 };
 
-let template = `{{#for tyrant in tyrants
+let template = `{{no = 0}}{{#for tyrant in tyrants
 }}这是一个关于{{tyrant.name}}的测试
 
 {{tyrant.name}}的ID: {{tyrant.ID}}
 {{#if tyrant.peoples.length==0}}**手下没人!**
-{{#else}}身边的打手(大于18岁):{{ #for people in tyrant.peoples}}{{ #if people.age > 18  }}
-* {{people.name}}{{#endif}}{{ #endfor}}
+{{#else}}身边的打手(大于18岁):{{ #for people in tyrant.peoples}}{{no=no+1}}{{ #if people.age > 18  }}
+* {{no}}:{{people.name}}{{#endif}}{{ #endfor}}
 {{#endif}}
 
 {{#endfor}}`

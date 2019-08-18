@@ -55,7 +55,10 @@ function getExpressionResult(tags, expression) {
         if (expression.operator == '~') return ~result;
         if (expression.operator == '!') return !result;
     }
-    if (expression.type == 'BinaryExpression' || expression.type == 'LogicalExpression') {
+    if (
+        expression.type == 'BinaryExpression' || 
+        expression.type == 'LogicalExpression'
+    ) {
         let left = getExpressionResult(tags, expression.left);
         let right = getExpressionResult(tags, expression.right);
         switch (expression.operator) {
@@ -89,6 +92,43 @@ function getExpressionResult(tags, expression) {
                 return left && right;
         }
     }
+    if (
+        expression.type == 'SequenceExpression'
+    ) {
+        return expression.expressions.reduce(
+            (str,exp) => str+getExpressionResult(tags, exp),
+            ""
+        );
+    }
+    if (
+        expression.type == 'AssignmentExpression'
+    ) {
+        let left = expression.left.name;
+        let right = getExpressionResult(tags, expression.right);
+        switch (expression.operator) {
+            case '=':
+                tags[left] = right;
+                return "";
+            case '+=':
+                tags[left] += right;
+                return "";
+            case '-=':
+                tags[left] -= right;
+                return "";
+            case '*=':
+                tags[left] *= right;
+                return "";
+            case '**=':
+                tags[left] **= right;
+                return "";
+            case '/=':
+                tags[left] /= right;
+                return "";
+            case '%=':
+                tags[left] %= right;
+                return "";
+        }
+    }
     throw Error(`not expression: "${expression.type}"`);
 }
 
@@ -114,7 +154,7 @@ function do_for_expression(tags, node) {
         return content;
     }
     // {{#for k, v in object}}
-    if (left.type == "IdentifierList") {
+    if (left.type == "ArrayExpression") {
         key = left[0].name;
         value = left[1].name;
         list = Object.entries(right);
@@ -139,10 +179,6 @@ function do_for_expression(tags, node) {
 function convert_dom(tags, dom) {
     let content = '';
     dom.contents.forEach(node => {
-        if (node.type == 'variable_declaration') {
-            tags[node.expression.left.name] = getExpressionResult(tags, node.expression.right);
-            return;
-        }
         if (node.type == "raw") {
             content += node.text;
             return;

@@ -8,6 +8,55 @@
  */
 
 import esprima from "esprima";
+
+function isLimitedExpression(expression){
+    let {
+        type,
+        operator
+    } = expression;
+    // 仅支持以下表达式和列出的操作符
+    if (
+         ['Identifier', 'Literal'].includes(type)
+    ) return true;
+    if (
+        type == 'AssignmentExpression' &&
+        ['=', '+=', '-=', '*=', '**=', '/=', '%='].includes(operator) &&
+        expression.left.type == "Identifier" &&
+        isLimitedExpression(expression.right) 
+    ) return true;
+    if (
+        type == 'UnaryExpression' && 
+        ['+', '-', '~', '!'].includes(operator) &&
+        isLimitedExpression(expression.argument)
+    ) return true;
+    if (
+        type == 'BinaryExpression' && 
+        ['in', '+', '-', '*', '/', '%', '==', '!=', '<', '>', '<=', '>='].includes(operator) &&
+        isLimitedExpression(expression.left) &&
+        isLimitedExpression(expression.right) 
+    ) return true;
+    if(
+        type == 'ArrayExpression' &&
+        !expression.elements.find(e => !isLimitedExpression(e))
+    ) return true;
+    if (
+        type == "MemberExpression" &&
+        isLimitedExpression(expression.object) &&
+        isLimitedExpression(expression.property)
+    ) return true;
+    if (
+        type == 'SequenceExpression' &&
+        !expression.expressions.find(e => !isLimitedExpression(e))
+    ) return true;
+    if (
+        type == 'LogicalExpression' &&
+        (operator == '||' || operator == '&&') &&
+        isLimitedExpression(expression.left) &&
+        isLimitedExpression(expression.right) 
+    ) return true;
+    return false;
+}
+
 /**
  * 
  * @param {string} code 
@@ -19,47 +68,30 @@ function parse_expression(code) {
     if (ast.type != "Program" || ast.body.length != 1) throw error;
     if (ast.body[0].type != 'ExpressionStatement') throw error;
     let expression = ast.body[0].expression;
-    let {
-        type,
-        operator
-    } = expression;
-    // 仅支持以下表达式和列出的操作符
-    if (
-        type == 'AssignmentExpression' &&
-        operator == '='
-    ) return expression;
-    if (type == 'SequenceExpression') { // key, value in array
-        let expressions = expression.expressions;
-        if (
-            expressions.length == 2 &&
-            expressions[0].type == 'Identifier' &&
-            expressions[1].type == 'BinaryExpression' &&
-            expressions[1].left.type == 'Identifier' &&
-            expressions[1].operator == 'in'
-        ) {
-            let expression = expressions[1];
-            expression.left = [expressions[0], expression.left];
-            expression.left.type = 'IdentifierList';
-            return expression;
-        }
-    }
-    if (
-        type == 'Identifier' ||
-        type == 'Literal' ||
-        type == 'ArrayExpression' ||
-        type == 'MemberExpression'
-    ) return expression;
-    if (
-        type == 'UnaryExpression' && ['+', '-', '~', '!'].includes(operator)
-    ) return expression;
-    if (
-        type == 'BinaryExpression' && ['in', '+', '-', '*', '/', '%', '==', '!=', '<', '>', '<=', '>='].includes(operator)
-    ) return expression;
-    if (
-        type == 'LogicalExpression' &&
-        (operator == '||' || operator == '&&')
-    ) return expression;
-    throw error;
+    if (!isLimitedExpression(expression)) throw error;
+    return expression;
+}
+
+/**
+ * 
+ * @param {string} code 
+ */
+function parse_forloop_expression(code){
+    let error = Error("#for expression syntax error");
+    let expression = parse_expression(code)
+    if (expression.type == 'BinaryExpression') return expression;
+    let expressions = expression.expressions;
+    if (!expressions) throw error;
+    if (expressions.length != 2) throw error;
+    if (expressions[0].type != 'Identifier') throw error;
+    if (expressions[1].type != 'BinaryExpression') throw error;
+    if (expressions[1].left.type != 'Identifier') throw error;
+    if (expressions[1].operator != 'in') throw error;
+
+    expression = expressions[1];
+    expression.left = [expressions[0], expression.left];
+    expression.left.type = 'ArrayExpression';
+    return expression;
 }
 
 /**
@@ -141,8 +173,7 @@ function parse_code(precode) {
         let error = Error("#for expression syntax error!");
         let text = precode.replace(/^#for\s+/, '');
         if (text == precode) throw error;
-        let expression = parse_expression(text);
-        if (!expression && expression.operator != 'in') throw error;
+        let expression = parse_forloop_expression(text);
         return {
             "type": "for",
             "text": "for statement",
@@ -159,19 +190,6 @@ function parse_code(precode) {
         return {
             "type": "endfor",
             "text": comment,
-        }
-    }
-
-    // meet {{#var}}
-    if (precode.startsWith('#var')) {
-        let error = Error("#var syntax error!");
-        let text = precode.replace(/^#var\s+/, '');
-        if (text == precode) throw error;
-        let expression = parse_expression(text);
-        if (!expression) throw error;
-        return {
-            "type": "variable_declaration",
-            expression,
         }
     }
 
@@ -275,13 +293,6 @@ function gen_tree(code) {
     if (code.type == "expression" || code.type == "raw") {
         // *node[...]*
         current_node.contents.push(code); // *node[...*expression|raw[]* ]
-        return;
-    }
-
-    // var[]
-    if (code.type == "variable_declaration") {
-        // *node[...]*
-        current_node.contents.push(code); //*node[...*var[]* ]
         return;
     }
 

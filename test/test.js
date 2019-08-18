@@ -38,6 +38,13 @@ describe('convert(tags, template)', () => {
                 }, '{{ID}} {{conn.ID}} {{conn["ID"]}} {{conn[prop]}} {{conn.addr.ID}} {{conn.addr["value"]}}'),
                 "1 2 2 2 3 xian rd. 128"
             );
+            assert.equal( // 测试赋值运算 '=', '+=', '-=', '*=', '**=', '/=', '%='
+                convert(
+                    {"n": 1, 'b': false},
+                    '{{n+=7}}{{n}}\n{{b=b||true}}{{b}}\n{{n%=5}}{{n}}\n{{"n:",m=10,m}}'
+                ),
+                "8\ntrue\n3\nn:10"
+            );
         });
         it('#for loop', () => {
             assert.equal( // 测试数组遍历
@@ -85,12 +92,6 @@ describe('convert(tags, template)', () => {
                 "吴七"
             );
         });
-        it('#var assignment expression', () => {
-            assert.equal(
-                convert({}, '{{#var r = 5*8/2 }}{{r}}'),
-                "20"
-            );
-        });
         it('# comment', () => {
             assert.equal(
                 convert({}, '{{# let \nr = \n\t5*8/2 }}'),
@@ -99,6 +100,11 @@ describe('convert(tags, template)', () => {
         });
     });
     describe('模板语法错', () => {
+        it('使用了不支持的语法', () => {
+            assert.throws(() => {
+                convert({}, '{{ a++ }}{{ c <<= d }}');
+            }, Error);
+        });
         it('{{#指令 错误', () => {
             assert.throws(() => {
                 convert({}, '{{#if9>0}}9>0{{#endif}}');
@@ -111,9 +117,6 @@ describe('convert(tags, template)', () => {
             }, Error);
             assert.throws(() => {
                 convert({}, '{{#for   }}if{{#endif}}');
-            }, Error);
-            assert.throws(() => {
-                convert({}, '人物：{{#var}}let error');
             }, Error);
         });
         it('#for #endfor 不匹配', () => {
