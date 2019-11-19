@@ -1,9 +1,6 @@
 /* eslint-disable no-undef */
-const {
-    convert
-} = require("../lib/index.cjs");
-const assert = require("assert");
-
+import {convert} from "../lib/index.js";
+import assert from "assert";
 describe('convert(tags, template)', () => {
     describe('模板正确解析', () => {
         describe('{{ express }} 输出正确', () => {
@@ -26,7 +23,7 @@ describe('convert(tags, template)', () => {
                 assert.equal( // 测试布尔的二元运算 && ||
                     convert(
                         {"go": true, 'car': false},
-                        '步行外出:{{go && !car}} \n乘车外出：{{go &&car}} \n有外出：{{go||car}}'
+                        '步行外出:{{go && !car}} \n乘车外出：{{go && car}} \n有外出：{{go || car}}'
                     ),
                     "步行外出:true \n乘车外出：false \n有外出：true"
                 );

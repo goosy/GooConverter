@@ -71,3 +71,4 @@ build-include/
 dist/
 .vscode/
 lib/
+readme.html
