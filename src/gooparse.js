@@ -16,7 +16,7 @@ function isLimitedExpression(expression){
     } = expression;
     // 仅支持以下表达式和列出的操作符
     if (
-         ['Identifier', 'Literal'].includes(type)
+        ['Identifier', 'Literal'].includes(type)
     ) return true;
     if (
         type == 'AssignmentExpression' &&

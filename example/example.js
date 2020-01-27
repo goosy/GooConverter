@@ -4,11 +4,16 @@ let tags = {
     "tyrants":[{
         "name": "腊肉",
         "ID": 38,
-        "peoples": [{"name": '张三', "age": 15}, {"name": '李四', "age": 22}, {"name": '王五', "age": 19}, {"name": '赵六', "age": 29}]
+        "peoples": [
+            {"name": '张三', "age": 15}, 
+            {"name": '李四', "age": 22}, 
+            {"name": '王五', "age": 19}, 
+            {"name": '赵六', "age": 29},
+        ]
     },{
         "name": "包子",
         "ID": 89,
-        "peoples": []
+        "peoples": [],
     }]
 };
 
