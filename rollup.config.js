@@ -6,17 +6,17 @@ import json from '@rollup/plugin-json';
 export default {
 	input: 'src/index.js',
 	output: [{
-		file: pkg['main'],
+		file: pkg.exports.default,
 		format: 'es',
 	}, {
-		file: pkg['exports']["./cjs"],
+		file: pkg.exports.require,
 		format: 'cjs',
 	}],
 	plugins: [
 		resolve({
 			preferBuiltins: true,
 		}), // tells Rollup how to find XX in node_modules
-		commonjs(), // converts XX to ES modules
+		commonjs(),
 		json()
 	],
 	external: ['fs', 'path', 'net'],

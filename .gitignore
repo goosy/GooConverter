@@ -66,9 +66,11 @@ typings/
 # package
 package-lock.json
 
+# VS Code
+.vscode/
+
 # production
 build-include/
 dist/
-.vscode/
 lib/
 readme.html
