@@ -121,7 +121,7 @@ describe('convert(tags, template)', () => {
             });
         });
     });
-    describe('模板语法错', () => {
+    describe('模板语法纠错', () => {
         it('使用了不支持的语法', () => {
             assert.throws(() => {
                 convert({}, '{{ a++ }}{{ c <<= d }}');
