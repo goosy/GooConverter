@@ -55,8 +55,7 @@ function getExpressionResult(tags, expression) {
     // 'Identifier' 'AssignmentExpression' 'BinaryExpression' 'Literal'
     if (expression.type == "Literal") return expression.value;
     if (expression.type == "Identifier") {
-        let value = tags[expression.name];
-        return value != undefined ? value : expression.name;
+        return tags[expression.name]; // 标识符必须在tags中，否则返回undefined
     }
     if (expression.type == "CallExpression") {
         let argus = expression.arguments.map(argu => getExpressionResult(tags, argu));
@@ -205,13 +204,9 @@ function convert_dom(tags, dom) {
     dom.contents.forEach(node => {
         if (node.type == "raw") {
             content += node.text;
-            return;
-        }
-        if (node.type == "expression") {
+        } else if (node.type == "expression") {
             content += getExpressionResult(tags, node.expression);
-            return;
-        }
-        if (node.type == "ifs") {
+        } else if (node.type == "ifs") {
             let truenode = node.contents.find(node => {
                 if (node.type == "if" || node.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
                     return getExpressionResult(tags, node.expression);
@@ -222,11 +217,8 @@ function convert_dom(tags, dom) {
             if (truenode) content += convert_dom({
                 ...tags
             }, truenode);
-            return;
-        }
-        if (node.type == "for") {
+        } else if (node.type == "for") {
             content += do_for_expression(tags, node);
-            return;
         }
     })
     return content;
