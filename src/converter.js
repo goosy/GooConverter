@@ -32,12 +32,13 @@ export function* convertRules(rules, template) {
 }
 
 /**
- * 
+ * 递归计算表达式
  * @param {Object} tags dict of tag and value
- * @param {AST} expression 
+ * @param {AST} es_expression 
+ * @todo add ?? ?. ?: operater
  */
-function getExpressionResult(tags, expression) {
-    function range(start, end, step){
+function computeESExpression(tags, es_expression) {
+    function range(start, end, step) {
         if (start === undefined) return [];
         if (end === undefined) {
             end = start
@@ -53,38 +54,38 @@ function getExpressionResult(tags, expression) {
         return ret;
     }
     // 'Identifier' 'AssignmentExpression' 'BinaryExpression' 'Literal'
-    if (expression.type == "Literal") return expression.value;
-    if (expression.type == "Identifier") {
-        return tags[expression.name]; // 标识符必须在tags中，否则返回undefined
+    if (es_expression.type == "Literal") return es_expression.value;
+    if (es_expression.type == "Identifier") {
+        return tags[es_expression.name]; // 标识符必须在tags中，否则返回undefined
     }
-    if (expression.type == "CallExpression") {
-        let argus = expression.arguments.map(argu => getExpressionResult(tags, argu));
+    if (es_expression.type == "CallExpression") {
+        let argus = es_expression.arguments.map(argu => computeESExpression(tags, argu));
         return range(...argus);
     }
-    if (expression.type == "ArrayExpression") {
-        return expression.elements.map(el => getExpressionResult(tags, el));
+    if (es_expression.type == "ArrayExpression") {
+        return es_expression.elements.map(el => computeESExpression(tags, el));
     }
-    if (expression.type == "MemberExpression") {
-        let obj = getExpressionResult(tags, expression.object);
-        let property = expression.computed ?
-            getExpressionResult(tags, expression.property) :
-            expression.property.name;        
+    if (es_expression.type == "MemberExpression") {
+        let obj = computeESExpression(tags, es_expression.object);
+        let property = es_expression.computed ?
+            computeESExpression(tags, es_expression.property) :
+            es_expression.property.name;
         return obj[property];
     }
-    if (expression.type == 'UnaryExpression') {
-        let result = getExpressionResult(tags, expression.argument);
-        if (expression.operator == '+') return +result;
-        if (expression.operator == '-') return -result;
-        if (expression.operator == '~') return ~result;
-        if (expression.operator == '!') return !result;
+    if (es_expression.type == 'UnaryExpression') {
+        let result = computeESExpression(tags, es_expression.argument);
+        if (es_expression.operator == '+') return +result;
+        if (es_expression.operator == '-') return -result;
+        if (es_expression.operator == '~') return ~result;
+        if (es_expression.operator == '!') return !result;
     }
     if (
-        expression.type == 'BinaryExpression' || 
-        expression.type == 'LogicalExpression'
+        es_expression.type == 'BinaryExpression' ||
+        es_expression.type == 'LogicalExpression'
     ) {
-        let left = getExpressionResult(tags, expression.left);
-        let right = getExpressionResult(tags, expression.right);
-        switch (expression.operator) {
+        let left = computeESExpression(tags, es_expression.left);
+        let right = computeESExpression(tags, es_expression.right);
+        switch (es_expression.operator) {
             case '+':
                 return left + right;
             case '-':
@@ -116,19 +117,19 @@ function getExpressionResult(tags, expression) {
         }
     }
     if (
-        expression.type == 'SequenceExpression'
+        es_expression.type == 'SequenceExpression'
     ) {
-        return expression.expressions.reduce(
-            (str,exp) => str+getExpressionResult(tags, exp),
+        return es_expression.expressions.reduce(
+            (str, exp) => str + computeESExpression(tags, exp),
             ""
         );
     }
     if (
-        expression.type == 'AssignmentExpression'
+        es_expression.type == 'AssignmentExpression'
     ) {
-        let left = expression.left.name;
-        let right = getExpressionResult(tags, expression.right);
-        switch (expression.operator) {
+        let left = es_expression.left.name;
+        let right = computeESExpression(tags, es_expression.right);
+        switch (es_expression.operator) {
             case '=':
                 tags[left] = right;
                 return "";
@@ -152,16 +153,16 @@ function getExpressionResult(tags, expression) {
                 return "";
         }
     }
-    throw Error(`not expression: "${expression.type}"`);
+    throw Error(`not expression: "${es_expression}"`);
 }
 
-function do_for_expression(tags, node) {
+function convert_FOR_Goonode(tags, node) {
     let key,
         value,
         list,
         content = '',
         left = node.expression.left,
-        right = getExpressionResult(tags, node.expression.right);
+        right = computeESExpression(tags, node.expression.right);
     if (!right) throw Error("wrong #for statement!");
     let isArray = Array.isArray(right);
     // {{#for v in object}}
@@ -194,10 +195,25 @@ function do_for_expression(tags, node) {
     throw Error("wrong #for statement!");
 }
 
+function convert_IF_Goonode(tags, node) {
+    let truenode = node.contents.find(node => {
+        if (node.type == "if" || node.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
+            return computeESExpression(tags, node.expression);
+        }
+        if (node.type == "else") return true;
+        return false;
+    });
+    if (truenode) {
+        return convert_dom({ ...tags }, truenode);
+    }
+    return "";
+}
+
 /**
- * 
- * @param {Object} tags 
- * @param {Goonode} dom 
+ * 将 goonode DOM 转化为文字
+ * @param {Object} tags
+ * @param {Goonode} dom
+ * @returns {string}
  */
 function convert_dom(tags, dom) {
     let content = '';
@@ -205,20 +221,11 @@ function convert_dom(tags, dom) {
         if (node.type == "raw") {
             content += node.text;
         } else if (node.type == "expression") {
-            content += getExpressionResult(tags, node.expression);
+            content += computeESExpression(tags, node.expression);
         } else if (node.type == "ifs") {
-            let truenode = node.contents.find(node => {
-                if (node.type == "if" || node.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
-                    return getExpressionResult(tags, node.expression);
-                }
-                if (node.type == "else") return true;
-                return false;
-            });
-            if (truenode) content += convert_dom({
-                ...tags
-            }, truenode);
+            content += convert_IF_Goonode(tags, node);
         } else if (node.type == "for") {
-            content += do_for_expression(tags, node);
+            content += convert_FOR_Goonode(tags, node);
         }
     })
     return content;

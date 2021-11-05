@@ -9,56 +9,57 @@
 
 import esprima from "esprima";
 
-function isLimitedExpression(expression){
+function isLimitedExpression(es_expression){
     let {
         type,
         operator
-    } = expression;
+    } = es_expression;
     // 仅支持以下表达式和列出的操作符
+    // @todo add ?? ?. ?: operater
     if (
         ['Identifier', 'Literal'].includes(type)
     ) return true;
     if (
         type == 'AssignmentExpression' &&
         ['=', '+=', '-=', '*=', '**=', '/=', '%='].includes(operator) &&
-        expression.left.type == "Identifier" &&
-        isLimitedExpression(expression.right) 
+        es_expression.left.type == "Identifier" &&
+        isLimitedExpression(es_expression.right) 
     ) return true;
     if (
         type == 'UnaryExpression' && 
         ['+', '-', '~', '!'].includes(operator) &&
-        isLimitedExpression(expression.argument)
+        isLimitedExpression(es_expression.argument)
     ) return true;
     if (
         type == 'BinaryExpression' && 
         ['in', '+', '-', '*', '/', '%', '==', '!=', '<', '>', '<=', '>='].includes(operator) &&
-        isLimitedExpression(expression.left) &&
-        isLimitedExpression(expression.right) 
+        isLimitedExpression(es_expression.left) &&
+        isLimitedExpression(es_expression.right) 
     ) return true;
     if(
         type == 'ArrayExpression' &&
-        !expression.elements.find(e => !isLimitedExpression(e))
+        !es_expression.elements.find(e => !isLimitedExpression(e))
     ) return true;
     if (
         type == "MemberExpression" &&
-        isLimitedExpression(expression.object) &&
-        isLimitedExpression(expression.property)
+        isLimitedExpression(es_expression.object) &&
+        isLimitedExpression(es_expression.property)
     ) return true;
     if (
         type == 'SequenceExpression' &&
-        !expression.expressions.find(e => !isLimitedExpression(e))
+        !es_expression.expressions.find(e => !isLimitedExpression(e))
     ) return true;
     if (
         type == 'LogicalExpression' &&
         (operator == '||' || operator == '&&') &&
-        isLimitedExpression(expression.left) &&
-        isLimitedExpression(expression.right) 
+        isLimitedExpression(es_expression.left) &&
+        isLimitedExpression(es_expression.right) 
     ) return true;
     if ( // 调用运算符只支持 range()
         type == "CallExpression" &&
-        expression.callee.type == 'Identifier' &&
-        expression.callee.name == 'range' &&
-        expression.arguments.length <= 3
+        es_expression.callee.type == 'Identifier' &&
+        es_expression.callee.name == 'range' &&
+        es_expression.arguments.length <= 3
     ) return true;
     return false;
 }
@@ -66,25 +67,26 @@ function isLimitedExpression(expression){
 /**
  * 
  * @param {string} code 
+ * @return 
  */
-function parse_expression(code) {
+function parse_es_expression(code) {
     let error = Error("expression syntax error");
     if (typeof code != 'string') throw error;
     let ast = esprima.parseScript(code);
     if (ast.type != "Program" || ast.body.length != 1) throw error;
     if (ast.body[0].type != 'ExpressionStatement') throw error;
-    let expression = ast.body[0].expression;
-    if (!isLimitedExpression(expression)) throw error;
-    return expression;
+    let es_expression = ast.body[0].expression;
+    if (!isLimitedExpression(es_expression)) throw error;
+    return es_expression;
 }
 
 /**
  * 
  * @param {string} code 
  */
-function parse_forloop_expression(code){
+function parse_esforloop_expression(code){
     let error = Error("#for expression syntax error");
-    let expression = parse_expression(code)
+    let expression = parse_es_expression(code)
     if (expression.type == 'BinaryExpression') return expression;
     let expressions = expression.expressions;
     if (!expressions) throw error;
@@ -110,19 +112,19 @@ let document;
 let current_node;
 
 /**
- * 分析precode, 归类为 if endif for endfor raw let comment  的一个
- * @param {string} precode 
+ * 分析GTCode, 归类为 if endif for endfor raw let comment 几种Goonode的一个
+ * @param {string} GTCode 
  * @return {Goonode}
  */
-function parse_code(precode) {
+function GTCode2Goonode(GTCode) {
     let contents = [];
 
     // meet {{#if expression }}
-    if (precode.startsWith('#if')) {
+    if (GTCode.startsWith('#if')) {
         let error = Error("#if expression syntax error!");
-        let text = precode.replace(/^#if\s+/, '');
-        if (text == precode) throw error;
-        let expression = parse_expression(text);
+        let text = GTCode.replace(/^#if\s+/, '');
+        if (text == GTCode) throw error;
+        let expression = parse_es_expression(text);
         if (!expression) throw error;
         return {
             "type": "ifs",
@@ -138,11 +140,11 @@ function parse_code(precode) {
     }
 
     // meet {{#elseif expression }}
-    if (precode.startsWith('#elseif')) {
+    if (GTCode.startsWith('#elseif')) {
         let error = Error("#elseif expression syntax error!");
-        let text = precode.replace(/^#elseif\s+/, '');
-        if (text == precode) throw error;
-        expression = parse_expression(text);
+        let text = GTCode.replace(/^#elseif\s+/, '');
+        if (text == GTCode) throw error;
+        expression = parse_es_expression(text);
         if (!expression) throw error;
         return {
             "type": "elseif",
@@ -152,8 +154,8 @@ function parse_code(precode) {
     }
 
     // meet {{#else }}
-    if (precode.startsWith('#else')) {
-        let text = precode.substr(5);
+    if (GTCode.startsWith('#else')) {
+        let text = GTCode.substr(5);
         if (!/^(\s|$)/.test(text)) throw Error("#esle must be followed a space or nothing!");
         let comment = text.trim();
         return {
@@ -164,8 +166,8 @@ function parse_code(precode) {
     }
 
     // meet {{#endif}}
-    if (precode.startsWith('#endif')) {
-        let text = precode.substr(6);
+    if (GTCode.startsWith('#endif')) {
+        let text = GTCode.substr(6);
         if (!/^(\s|$)/.test(text)) throw Error("#endif must be followed a space or nothing!");
         let comment = text.trim();
         return {
@@ -175,11 +177,11 @@ function parse_code(precode) {
     }
 
     // meet {{#for expression}}
-    if (precode.startsWith('#for')) {
+    if (GTCode.startsWith('#for')) {
         let error = Error("#for expression syntax error!");
-        let text = precode.replace(/^#for\s+/, '');
-        if (text == precode) throw error;
-        let expression = parse_forloop_expression(text);
+        let text = GTCode.replace(/^#for\s+/, '');
+        if (text == GTCode) throw error;
+        let expression = parse_esforloop_expression(text);
         return {
             "type": "for",
             "text": "for statement",
@@ -189,8 +191,8 @@ function parse_code(precode) {
     }
 
     // meet {{#endfor}}
-    if (precode.startsWith('#endfor')) {
-        let text = precode.substr(7);
+    if (GTCode.startsWith('#endfor')) {
+        let text = GTCode.substr(7);
         if (!/^(\s|$)/.test(text)) throw Error("#endfor must be followed a space or nothing!");
         let comment = text.trim();
         return {
@@ -200,16 +202,16 @@ function parse_code(precode) {
     }
 
     // meet {{#}}
-    if (precode.startsWith('#')) {
+    if (GTCode.startsWith('#')) {
         return {
             "type": "comment",
-            "text": precode.substr(1).trim(),
+            "text": GTCode.substr(1).trim(),
         }
     }
 
     // meet {{expression}}
     let error = Error("expression syntax error!");
-    let expression = parse_expression(precode);
+    let expression = parse_es_expression(GTCode);
     if (!expression) throw error;
     return {
         "type": "expression",
@@ -220,8 +222,8 @@ function parse_code(precode) {
 }
 
 function stack_push(code) {
-    code.parents = current_node;
     current_node.contents.push(code);
+    code.parents = current_node;
     current_node = code;
     if (code.type == "ifs") {
         current_node.contents[0].parents = current_node;
@@ -237,68 +239,69 @@ function stack_pop() {
  * @param {Goonode} code 
  */
 
-function gen_tree(code) {
+function GT_tree_append(code) {
 
-    // ifs[if[]]
+    // gen ifs[] if[]
     if (code.type == "ifs") {
-        // *node[...]*
-        stack_push(code); // node[... ifs[*if[]* ] ]
+        // 当前节点 ►node[...]◄ 
+
+        stack_push(code); // 当前节点 node[... ifs[►if[]◄] ]
         return;
     }
 
-    // if|elseif[]
+    // gen elseif[]
     if (code.type == "elseif" || code.type == "else") {
+        // 当前节点 ifs[...►(if|elseif)[...]◄ ]
 
         // 不能和上一个 {{#if}} 或 {{#elseif}} 匹配，报错
-        // ifs[...*if|elseif[...]]
         let type = current_node.type;
         if (type != "if" && type != "elseif") throw Error("wrong pair of IF!");
 
         // 出栈
-        stack_pop(); // *ifs[...if|elseif[...]]
+        stack_pop(); // 当前节点 ►ifs[...(if|elseif)[...]]◄
 
         // 重新入栈
-        stack_push(code); // ifs[...if|elseif[...], *elseif|else[] ] 
+        stack_push(code); // 当前节点 ifs[...if|elseif[...], ►elseif|else[]◄ ]
 
         return;
     }
 
     // endif
     if (code.type == "endif") {
+        // 当前节点 node[...ifs[...►(if|elseif|else)[...]◄]]
 
         // 不能和上一个 {{#if}} 或 {{#elseif}} 或 {{#else}} 匹配，报错
-        // node[...ifs[...*if|elseif|else[...]*]]
         let type = current_node.type;
         if (type != "if" && type != "elseif" && type != "else") throw Error("wrong pair of IF!");
 
         // 出栈，如不在 ifs 队列中，报错
-        stack_pop(); // node[...*ifs[...if|elseif|else[...]]*]
+        stack_pop(); // 当前节点 node[...►ifs[...if|elseif|else[...]]◄]
         if (current_node.type != "ifs") throw Error("wrong pair of IF!");
 
         // 再次出栈
-        stack_pop(); // *node[...ifs[...if|elseif|else[...]]]*
+        stack_pop(); // 当前节点 ►node[...ifs[...if|elseif|else[...]]]◄
         return;
     }
 
     // for[]
     if (code.type == "for") {
-        // *node[...]*
-        stack_push(code); // node[...*for[]*]
+        // ►node[...]◄
+        stack_push(code); // 当前节点 node[...►for[]◄]
         return;
     }
 
     // endfor
     if (code.type == "endfor") {
-        // node[...*for[...]*]
+        // 当前节点 node[...►for[...]◄]
         if (current_node.type != "for") throw Error("wrong pair of FOR!");
-        stack_pop(); // *node[...for[...]]*
+        stack_pop(); // 当前节点 ►node[...for[...]]◄
         return;
     }
 
     // expression|raw[]
     if (code.type == "expression" || code.type == "raw") {
-        // *node[...]*
-        current_node.contents.push(code); // *node[...*expression|raw[]* ]
+        // 当前节点 ►node[...]◄
+        current_node.contents.push(code); // 仅附加内容，当前节点不变 ►node[...(expression|raw)[] ]◄
         return;
     }
 
@@ -327,11 +330,10 @@ export function parseToDOM(template) {
 
     // 寻找{{.*}}直至完成。当正则式搜索不到匹配时，lastIndex会重新变成0
     // eslint-disable-next-line no-constant-condition
-    while (true) {
-        let match = reg_left.exec(template);
-        if (!match) break;
+    let match;
+    while (match = reg_left.exec(template)) {
         if (reg_left.lastIndex < current_index) throw Error("tags mark wrong!");
-        gen_tree({
+        GT_tree_append({
             "type": 'raw',
             "text": template.substring(current_index, match.index),
             "contents": []
@@ -340,7 +342,7 @@ export function parseToDOM(template) {
 
         match = reg_right.exec(template);
         if (reg_right.lastIndex < current_index) throw Error("tags mark wrong!");
-        gen_tree(parse_code(template.substring(current_index, match.index)));
+        GT_tree_append(GTCode2Goonode(template.substring(current_index, match.index)));
         current_index = reg_right.lastIndex;
     }
 
