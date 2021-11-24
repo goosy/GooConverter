@@ -7,9 +7,9 @@
  * @typedef {{type:string, text:string, expression:{} contents:Goonode[]}} Goonode
  */
 
-import esprima from "esprima";
+import { parse } from 'acorn';
 
-function isLimitedExpression(es_expression){
+function isLimitedExpression(es_expression) {
     let {
         type,
         operator
@@ -21,22 +21,22 @@ function isLimitedExpression(es_expression){
     ) return true;
     if (
         type == 'AssignmentExpression' &&
-        ['=', '+=', '-=', '*=', '**=', '/=', '%='].includes(operator) &&
+        ['=', '+=', '-=', '*=', '**=', '/=', '%=', '??='].includes(operator) &&
         es_expression.left.type == "Identifier" &&
-        isLimitedExpression(es_expression.right) 
+        isLimitedExpression(es_expression.right)
     ) return true;
     if (
-        type == 'UnaryExpression' && 
+        type == 'UnaryExpression' &&
         ['+', '-', '~', '!'].includes(operator) &&
         isLimitedExpression(es_expression.argument)
     ) return true;
     if (
-        type == 'BinaryExpression' && 
-        ['in', '+', '-', '*', '/', '%', '==', '!=', '<', '>', '<=', '>='].includes(operator) &&
+        type == 'BinaryExpression' &&
+        ['in', '+', '-', '*', '/', '%', '==', '===', '!=', '!==', '<', '>', '<=', '>='].includes(operator) &&
         isLimitedExpression(es_expression.left) &&
-        isLimitedExpression(es_expression.right) 
+        isLimitedExpression(es_expression.right)
     ) return true;
-    if(
+    if (
         type == 'ArrayExpression' &&
         !es_expression.elements.find(e => !isLimitedExpression(e))
     ) return true;
@@ -51,9 +51,9 @@ function isLimitedExpression(es_expression){
     ) return true;
     if (
         type == 'LogicalExpression' &&
-        (operator == '||' || operator == '&&') &&
+        (operator == '||' || operator == '&&' || operator == '??') &&
         isLimitedExpression(es_expression.left) &&
-        isLimitedExpression(es_expression.right) 
+        isLimitedExpression(es_expression.right)
     ) return true;
     if ( // 调用运算符只支持 range()
         type == "CallExpression" &&
@@ -72,7 +72,7 @@ function isLimitedExpression(es_expression){
 function parse_es_expression(code) {
     let error = Error("expression syntax error");
     if (typeof code != 'string') throw error;
-    let ast = esprima.parseScript(code);
+    let ast = parse(code, { ecmaVersion: 2020 });
     if (ast.type != "Program" || ast.body.length != 1) throw error;
     if (ast.body[0].type != 'ExpressionStatement') throw error;
     let es_expression = ast.body[0].expression;
@@ -84,7 +84,7 @@ function parse_es_expression(code) {
  * 
  * @param {string} code 
  */
-function parse_esforloop_expression(code){
+function parse_esforloop_expression(code) {
     let error = Error("#for expression syntax error");
     let expression = parse_es_expression(code)
     if (expression.type == 'BinaryExpression') return expression;

@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import {convert} from "../lib/index.js";
+import {convert} from "../src/index.js";
 import assert from "assert";
 describe('convert(tags, template)', () => {
     describe('模板正确解析', () => {
@@ -30,10 +30,17 @@ describe('convert(tags, template)', () => {
                 );
                 assert.strictEqual( // 测试布尔的二元运算 && ||
                     convert(
-                        {"go": true, 'car': false},
-                        '步行外出:{{go && !car}} \n乘车外出：{{go && car}} \n有外出：{{go || car}}'
+                        {"go": true, 'car': false, ud: null},
+                        '步行外出:{{go && !car}} \n乘车外出：{{go && car}} \n有外出：{{go || car}}\n{{ud ?? "无效值"}}'
                     ),
-                    "步行外出:true \n乘车外出：false \n有外出：true"
+                    "步行外出:true \n乘车外出：false \n有外出：true\n无效值"
+                );
+                assert.strictEqual( // 测试其它二元运算 == === != !==
+                    convert(
+                        { },
+                        '{{null == undefined}}:{{null === undefined}}:{{null != undefined}}:{{null !== undefined}}'
+                    ),
+                    "true:false:false:true"
                 );
                 assert.strictEqual( // 测试成员运算符 . []
                     convert({
@@ -54,6 +61,13 @@ describe('convert(tags, template)', () => {
                         '{{n+=7}}{{n}}\n{{b=b||true}}{{b}}\n{{n%=5}}{{n}}\n{{"n:",m=10,m}}'
                     ),
                     "8\ntrue\n3\nn:10"
+                );
+                assert.strictEqual( // 测试赋值运算 '=', '+=', '-=', '*=', '**=', '/=', '%=', '??='
+                    convert(
+                        {"n": 1, 'b': false},
+                        '{{n+=7}}{{n}}\n{{c=b||"on false"}}{{c}}\n{{c=b??"no false"}}{{c}}\n{{n%=5}}{{n}}\n{{"n:",c=10,c}}'
+                    ),
+                    "8\non false\nfalse\n3\nn:10"
                 );
             });
             it('{{ range() }} 输出正确', () => {

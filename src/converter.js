@@ -4,6 +4,7 @@
  * @typedef {Rule[]} Rules 转换规则表
  * @typedef {{name:string, tags:Object}} Rule 转换规则
  */
+
 import {
     parseToDOM
 } from "./gooparse.js";
@@ -98,8 +99,14 @@ function computeESExpression(tags, es_expression) {
                 return left % right;
             case '==':
                 return left == right;
+            case '===':
+                return left === right;
             case '!=':
                 return left != right;
+            case '!==':
+                return left !== right;
+            case '??':
+                return left ?? right;
             case 'in':
                 return left in right;
             case '<':
@@ -150,6 +157,9 @@ function computeESExpression(tags, es_expression) {
                 return "";
             case '%=':
                 tags[left] %= right;
+                return "";
+            case '??=':
+                tags[left] ??= right;
                 return "";
         }
     }
