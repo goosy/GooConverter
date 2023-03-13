@@ -63,9 +63,10 @@ typings/
 # jet brain
 .idea
 
-# package
+# package lock
 package-lock.json
 yarn.lock
+pnpm-lock.yaml
 
 # VS Code
 .vscode/
