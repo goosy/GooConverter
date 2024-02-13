@@ -6,6 +6,8 @@
 
 ## 替换
 
+主要有以下五类替换符：
+
 - 表达式替换
     计算表达式，并在所在位置替换成结果。可以在表达式中使用JS语法的运算符、方法。
     `{{表达式}}`
@@ -25,8 +27,10 @@
         循环输出，遍历object的所有自身属性值（不是属性键值）。
     - `{{#for key, value in Object}} 键值:{{key}}, 属性值:{{value}} {{#endfor}}`
         同时遍历键和值，当object为Array时，键值为数字。
-- `{{# 注释}}`
-    仅用于说明上下文相关，不产生输出。
+- 注释
+    语法 `{{# 注释文本}}` 仅用于说明，不产生输出。
+
+上面所有替换符，右标记 `}}` 后如果紧跟一个或多个 `_\n`，会视为替换符的一部分，不会输出到正文中。也可以理解为取消替换符行末的换行符输出。
 
 ## 例子
 
@@ -51,8 +55,11 @@ let tags = {
 };
 let template = `group: {{name}}{{ID = ID-8000 }}{{# 说明：取ID后2位形成编号}}
 ID: {{ID}}
-adult:{{ #for people in peoples}}{{ #if people.age > 18  }}
-- {{people.name}}{{#endif}}{{ #endfor}}
+adult:{{#for people in peoples}}_
+{{  #if people.age > 18}}
+- {{people.name}}_
+{{  #endif}}_
+{{#endfor}}
 `
 console.log(convert(tags, template));
 ```

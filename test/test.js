@@ -172,6 +172,12 @@ describe('convert(tags, template)', () => {
                     ""
                 );
             });
+            it('取消末尾换行', () => {
+                assert.strictEqual(
+                    convert({}, '{{# comment}}_\r\n_\n\n_\ntest\n'),
+                    "\n_\ntest\n"
+                );
+            });
         });
     });
     describe('模板语法纠错', () => {
