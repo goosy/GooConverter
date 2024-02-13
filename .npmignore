@@ -1,6 +1,6 @@
 .git
 .vscode/
-.eslintrc.js
+.eslintrc.*
 node_modules/
 rollup.config.js
 src/
