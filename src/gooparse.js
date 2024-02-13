@@ -69,7 +69,7 @@ function isLimitedExpression(es_expression) {
         type == "CallExpression" &&
         ['Identifier', 'MemberExpression'].includes(es_expression.callee.type) &&
         isLimitedExpression(es_expression.callee) &&
-        es_expression.arguments.every(argu=>isLimitedExpression(argu))
+        es_expression.arguments.every(argu => isLimitedExpression(argu))
     ) return true;
     return false;
 }
@@ -327,6 +327,11 @@ function GT_tree_append(code) {
  * @param {string} template
  */
 export function parseToDOM(template) {
+    function throw_wrong_pair(range) {
+        throw SyntaxError(`wrong pair of replacement标记不配对！
+position 位置: ${range[0]}:${range[1]}
+content 内容: ${template.substring(...range)}`);
+    }
 
     // init document
     current_node = document = {
@@ -334,27 +339,42 @@ export function parseToDOM(template) {
         text: "",
         contents: []
     };
-    let reg_left = /\{\{\s*/g; // 寻找 '{{' 
-    let reg_right = /\s*\}\}/g; // 寻找 '}}' 
+    let reg_left = /\{\{/g; // 寻找 '{{' 
+    let reg_right = /\}\}(_\r?\n)*/g; // 寻找 '}}_\n' 或 '}}'
     let current_index = 0;
+    let last_range = [0, 0];
+    let match;
 
     // 寻找{{.*}}直至完成。当正则式搜索不到匹配时，lastIndex会重新变成0
     // eslint-disable-next-line no-constant-condition
-    let match;
-    while (match = reg_left.exec(template)) {
-        if (reg_left.lastIndex < current_index) throw Error("tags mark wrong!");
-        GT_tree_append({
-            "type": 'raw',
-            "text": template.substring(current_index, match.index),
-            "contents": []
-        });
-        current_index = reg_left.lastIndex;
+    while (match = reg_left.exec(template), match) {
+        const range_left = match.index;
+        const content_left = reg_left.lastIndex;
+        if (range_left < current_index) throw_wrong_pair(last_range);
+        const raw_range = [current_index, range_left];
+        const raw_node = {
+            type: 'raw',
+            text: template.substring(...raw_range),
+            contents: [],
+            range: [raw_range[0], ...raw_range, raw_range[1]],
+        }
+        GT_tree_append(raw_node);
 
         match = reg_right.exec(template);
-        if (reg_right.lastIndex < current_index) throw Error("tags mark wrong!");
-        GT_tree_append(GTCode2Goonode(template.substring(current_index, match.index)));
-        current_index = reg_right.lastIndex;
+        if (!match) throw_wrong_pair([range_left, template.length]);
+        const content_right = match.index;
+        const range_right = reg_right.lastIndex;
+        if (content_right < content_left) throw_wrong_pair(raw_range);
+        // `{{ }}` 视为 `{{""}}`
+        const gtcode = template.substring(content_left, content_right).trim() || '""';
+        const goonode = GTCode2Goonode(gtcode);
+        goonode.range = [range_left, content_left, content_right, range_right];
+        GT_tree_append(goonode);
+        current_index = range_right;
+        last_range = [range_left, range_right];
     }
+    match = reg_right.exec(template);
+    if (match) throw_wrong_pair([current_index, reg_right.lastIndex]);
 
     if (template.length > current_index) current_node.contents.push({
         "type": "raw",

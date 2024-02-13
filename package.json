@@ -1,38 +1,38 @@
 {
-	"name": "gooconverter",
-	"version": "0.3.8",
-	"type": "module",
-	"description": "gen string from template",
-	"main": "lib/index.cjs",
-	"exports": {
-		"require": "./lib/index.cjs",
-		"default": "./lib/index.js"
-	},
-	"engines": {
-		"node": ">=14.8.0"
-	},
-	"devDependencies": {
-		"@rollup/plugin-commonjs": "^25.0.7",
-		"@rollup/plugin-json": "^6.1.0",
-		"@rollup/plugin-node-resolve": "^15.2.3",
-		"acorn": "^8.11.3",
-		"eslint": "^8.56.0",
-		"mocha": "^10.3.0",
-		"rollup": "^4.10.0"
-	},
-	"directories": {
-		"lib": "lib"
-	},
-	"scripts": {
-		"build": "rollup -c",
-		"dev": "rollup -c -w",
-		"test": "mocha",
-		"setup": "pnpm install",
-		"prepare": "pnpm build"
-	},
-	"keywords": [
-		"converter"
-	],
-	"author": "goosy.jo@gmail.com",
-	"license": "MIT"
+    "name": "gooconverter",
+    "version": "0.4.0",
+    "type": "module",
+    "description": "gen string from template",
+    "main": "lib/index.cjs",
+    "exports": {
+        "require": "./lib/index.cjs",
+        "default": "./lib/index.js"
+    },
+    "engines": {
+        "node": ">=14.8.0"
+    },
+    "devDependencies": {
+        "@rollup/plugin-commonjs": "^25.0.7",
+        "@rollup/plugin-json": "^6.1.0",
+        "@rollup/plugin-node-resolve": "^15.2.3",
+        "acorn": "^8.11.3",
+        "eslint": "^8.56.0",
+        "mocha": "^10.3.0",
+        "rollup": "^4.10.0"
+    },
+    "directories": {
+        "lib": "lib"
+    },
+    "scripts": {
+        "build": "rollup -c",
+        "dev": "rollup -c -w",
+        "test": "mocha",
+        "setup": "pnpm install",
+        "prepare": "pnpm build"
+    },
+    "keywords": [
+        "converter"
+    ],
+    "author": "goosy.jo@gmail.com",
+    "license": "MIT"
 }
