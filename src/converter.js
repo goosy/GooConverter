@@ -1,8 +1,9 @@
 /**
  * @file 实现基于转换规则和模板转换
  * @author goosy.jo@gmail.com
+ * @typedef {Object.<string, Object>} Tags 替换变量
+ * @typedef {{name:string, tags:Tags}} Rule 转换规则
  * @typedef {Rule[]} Rules 转换规则表
- * @typedef {{name:string, tags:Object}} Rule 转换规则
  */
 
 import {
@@ -11,8 +12,8 @@ import {
 
 /**
  * 
- * @param {Object} tags 
- * @param {string} template 
+ * @param {Tags} tags tags dict for template
+ * @param {string} template template string
  */
 export function convert(tags, template) {
     return convert_dom(tags, parseToDOM(template));
