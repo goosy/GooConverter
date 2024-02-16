@@ -71,6 +71,24 @@ describe('convert(tags, template)', () => {
                     "n=1\nb=false"
                 );
             });
+            it('{{ 数组字面量 }} 输出正确', () => {
+                assert.strictEqual( // 测试数组字面量
+                    convert(
+                        { common: [true, 'test'] },
+                        '{{ [1,2,3,"test"][3] }}_{{ [...common][1] }}'
+                    ),
+                    "test_test"
+                );
+            });
+            it('{{ 对象字面量 }} 输出正确', () => {
+                assert.strictEqual( // 测试对象字面量
+                    convert(
+                        { n: 1, has: false, common: { name: 'test' } },
+                        '{{ ({n, a: 3, has}).has }}_{{ ({...common}).name }}'
+                    ),
+                    "false_test"
+                );
+            });
             it('{{ 赋值运算式 }} 输出正确', () => {
                 assert.strictEqual( // 测试赋值运算 '=', '+=', '-=', '*=', '**=', '/=', '%='
                     convert(
@@ -108,6 +126,24 @@ describe('convert(tags, template)', () => {
                         '{{ mylist.join(" | ") }},{{ mylist["join"](" | ") }}'
                     ),
                     "apple | banana | orange | pear,apple | banana | orange | pear"
+                );
+                assert.strictEqual( // ...展开运算符输出正确
+                    convert(
+                        { a: [], b: [1, 2, 3] },
+                        '{{a.push(...b)}}\n{{a.join("")}}'
+                    ),
+                    "3\n123"
+                );
+                assert.strictEqual( // 自定义方法输出正确'
+                    convert(
+                        {
+                            show() {
+                                return ['apple', 'banana', 'orange', 'pear'].join(" | ");
+                            }
+                        },
+                        '{{ show() }}'
+                    ),
+                    "apple | banana | orange | pear"
                 );
             });
         });
