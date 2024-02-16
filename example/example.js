@@ -1,30 +1,42 @@
-import {convert} from "../src/index.js";
+import { convert } from "../src/index.js";
 
 let tags = {
-    "tyrants":[{
+    "tyrants": [{
         "name": "腊肉",
-        "ID": 38,
+        "ID": 18931226,
         "peoples": [
-            {"name": '张三', "age": 15}, 
-            {"name": '李四', "age": 22}, 
-            {"name": '王五', "age": 19}, 
-            {"name": '赵六', "age": 29},
+            { name: 'JQ', age: 68 },
+            { name: 'ZCC', age: 61 },
+            { name: 'YWY', age: 56 },
+            { name: 'WHW', age: 45 },
+            { name: 'MJY', age: 38 },
+            { name: 'WXJ', age: 38 },
+            { name: 'WHR', age: 38 },
+            { name: 'ZYF', age: 34 },
+            { name: 'XJY', age: 33 },
         ]
-    },{
+    }, {
         "name": "包子",
-        "ID": 89,
+        "ID": 19530615,
         "peoples": [],
     }]
 };
 
-let template = `{{no = 0}}{{#for tyrant in tyrants
-}}这是一个关于{{tyrant.name}}的测试
+let template = `{{no = 0}}_
+{{#for tyrant in tyrants}}_
+这是一个关于{{tyrant.name}}的测试
 
 {{tyrant.name}}的ID: {{tyrant.ID}}
-{{#if tyrant.peoples.length==0}}**手下没人!**
-{{#else}}身边的打手(大于18岁):{{ #for people in tyrant.peoples}}{{no=no+1}}{{ #if people.age > 18  }}
-* {{no}}:{{people.name}}{{#endif}}{{ #endfor}}
-{{#endif}}
+{{#if tyrant.peoples.length==0}}_
+**手下没人!**
+{{#else}}_
+身边的打手(大于40岁):
+{{  #for people in tyrant.peoples}}{{no=no+1}}_
+{{   #if people.age > 40 }}_
+* {{no}}:{{people.name}}
+{{   #endif people.age}}_
+{{  #endfor}}_
+{{#endif}}_
 
 {{#endfor}}`
 console.log(convert(tags, template));
