@@ -15,8 +15,6 @@ function isLimitedExpression(es_expression) {
         operator
     } = es_expression;
     // 仅支持以下表达式和列出的操作符
-    // 为安全性不会支持函数表达式
-    // @todo add ?? ?. ?: operater
     if (
         ['Identifier', 'Literal'].includes(type)
     ) return true;
@@ -36,10 +34,6 @@ function isLimitedExpression(es_expression) {
         ['in', '+', '-', '*', '/', '%', '==', '===', '!=', '!==', '<', '>', '<=', '>='].includes(operator) &&
         isLimitedExpression(es_expression.left) &&
         isLimitedExpression(es_expression.right)
-    ) return true;
-    if (
-        type == 'ArrayExpression' &&
-        !es_expression.elements.find(e => !isLimitedExpression(e))
     ) return true;
     if (
         type == "ChainExpression" &&
@@ -64,25 +58,47 @@ function isLimitedExpression(es_expression) {
         type == "ConditionalExpression" &&
         isLimitedExpression(es_expression.test) &&
         isLimitedExpression(es_expression.consequent) &&
-        isLimitedExpression(es_expression.alternate)) return true;
-    if (
+        isLimitedExpression(es_expression.alternate)
+    ) return true;
+    function is_spread_element(expr) { // 扩展运算符
+        return expr.type == "SpreadElement" && isLimitedExpression(expr.argument);
+    }
+    if ( // call 运算符
         type == "CallExpression" &&
         ['Identifier', 'MemberExpression'].includes(es_expression.callee.type) &&
         isLimitedExpression(es_expression.callee) &&
-        es_expression.arguments.every(argu => isLimitedExpression(argu))
+        es_expression.arguments.every(argu => is_spread_element(argu) || isLimitedExpression(argu))
+    ) return true;
+    if ( // [expr1, expr2, ...]
+        type == "ArrayExpression" &&
+        es_expression.elements.every(element => {
+            return is_spread_element(element) || isLimitedExpression(element);
+        })
+    ) return true;
+    if ( // {a: expr1, expr2, ...expr3}
+        type == "ObjectExpression" &&
+        es_expression.properties.every(prop => {
+            if (is_spread_element(prop)) return true;
+            if (prop.type == "Property") {
+                return isLimitedExpression(prop.key) && isLimitedExpression(prop.value);
+            }
+            return false;
+        })
     ) return true;
     return false;
 }
 
 /**
- * 
+ * if the parsed code represents a single expression
+ * returns that expression if it meets certain criteria
+ * otherwise it throws a syntax error.
  * @param {string} code 
  * @return 
  */
 function parse_es_expression(code) {
     let error = SyntaxError("expression syntax error");
     if (typeof code != 'string') throw error;
-    let ast = parse(code, { ecmaVersion: 2020 });
+    let ast = parse(code, { ecmaVersion: 2023 });
     if (ast.type != "Program" || ast.body.length != 1) throw error;
     if (ast.body[0].type != 'ExpressionStatement') throw error;
     let es_expression = ast.body[0].expression;

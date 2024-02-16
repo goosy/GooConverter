@@ -39,60 +39,52 @@ function parseMemberExpression(tags, es_expression) {
     return { obj, property };
 }
 
+const global_tags = {
+    range(start, end, step) {
+        if (start === undefined) return [];
+        if (end === undefined) {
+            end = start
+            start = 0
+        }
+        let direct = start < end;
+        step = step === undefined ? (direct ? 1 : -1) : step;
+        let ret = [], index = start;
+        while (direct ? index < end : index > end) {
+            ret.push(index);
+            index += step;
+        }
+        return ret;
+    },
+    Object, Array, Map, Set, // 透传一些系统对象
+}
+
 /**
  * 递归计算表达式
  * @param {Object} tags dict of tag and value
- * @param {AST} es_expression 
+ * @param {AST} es_expression
+ * @return {*}
  */
 function computeESExpression(tags, es_expression) {
-    const fn_tags = {
-        range(start, end, step) {
-            if (start === undefined) return [];
-            if (end === undefined) {
-                end = start
-                start = 0
-            }
-            let direct = start < end;
-            step = step === undefined ? (direct ? 1 : -1) : step;
-            let ret = [], index = start;
-            while (direct ? index < end : index > end) {
-                ret.push(index);
-                index += step;
-            }
-            return ret;
-        },
-        Object, Array, Map, Set, // 透传一些系统对象
-        ...tags
-    }
     // 'Identifier' 'AssignmentExpression' 'BinaryExpression' 'Literal'
     if (es_expression.type == "Literal") return es_expression.value;
     if (es_expression.type == "Identifier") {
-        return tags[es_expression.name]; // 标识符必须在tags中，否则返回undefined
+        return { ...global_tags, ...tags }[es_expression.name]; // 标识符必须在tags中，否则返回undefined
     }
-    if (es_expression.type == "CallExpression") {
-        const argus = es_expression.arguments.map(argu => computeESExpression(tags, argu));
-        const callee = es_expression.callee;
-        if (callee.type == "Identifier") {
-            return computeESExpression(fn_tags, callee)(...argus);
-        }
-        if (callee.type == "MemberExpression") {
-            const { obj, property } = parseMemberExpression(fn_tags, callee);
-            return obj[property](...argus);
-        }
-        return '';
-    }
-    if (es_expression.type == "ArrayExpression") {
-        return es_expression.elements.map(el => computeESExpression(tags, el));
-    }
+
+    // obj.foo
     if (es_expression.type == "MemberExpression") {
         const { obj, property } = parseMemberExpression(tags, es_expression);
         return obj[property];
     }
+
+    // obj?.foo
     if (es_expression.type == "ChainExpression") {
         const { obj, property } = parseMemberExpression(tags, es_expression.expression);
         if (obj === null || obj === undefined) return undefined;
         return obj[property];
     }
+
+    // +expr -expr ~expr !expr
     if (es_expression.type == 'UnaryExpression') {
         let result = computeESExpression(tags, es_expression.argument);
         if (es_expression.operator == '+') return +result;
@@ -100,6 +92,8 @@ function computeESExpression(tags, es_expression) {
         if (es_expression.operator == '~') return ~result;
         if (es_expression.operator == '!') return !result;
     }
+
+    // expr1 operator expr2
     if (
         es_expression.type == 'BinaryExpression' ||
         es_expression.type == 'LogicalExpression'
@@ -143,18 +137,31 @@ function computeESExpression(tags, es_expression) {
                 return left && right;
         }
     }
+
+    // expr1, expr2, ..., exprN
     if (es_expression.type == 'SequenceExpression') {
         return es_expression.expressions.reduce(
             (str, exp) => str + computeESExpression(tags, exp),
             ""
         );
     }
+
+    // expr1 ? expr2 : expr3
     if (es_expression.type == 'ConditionalExpression') {
         const test = computeESExpression(tags, es_expression.test);
         const consequent = computeESExpression(tags, es_expression.consequent);
         const alternate = computeESExpression(tags, es_expression.alternate);
         return test ? consequent : alternate;
     }
+
+    // expr1 = expr2
+    // expr1 += expr2
+    // expr1 -= expr2
+    // expr1 *= expr2
+    // expr1 **= expr2
+    // expr1 /= expr2
+    // expr1 %= expr2
+    // expr1 ??= expr2
     if (
         es_expression.type == 'AssignmentExpression'
     ) {
@@ -187,6 +194,60 @@ function computeESExpression(tags, es_expression) {
                 return "";
         }
     }
+
+    // foo() obj.foo() obj["foo"]()
+    if (es_expression.type == "CallExpression") {
+        const argus = [];
+        es_expression.arguments.forEach(argu => {
+            if (argu.type == "SpreadElement") {
+                argus.push(...computeESExpression(tags, argu.argument));
+            } else {
+                argus.push(computeESExpression(tags, argu));
+            }
+        });
+        const callee = es_expression.callee;
+        if (callee.type == "Identifier") {
+            return computeESExpression(tags, callee)(...argus);
+        }
+        if (callee.type == "MemberExpression") {
+            const { obj, property } = parseMemberExpression(tags, callee);
+            return obj[property](...argus);
+        }
+        return '';
+    }
+
+    // [expr1, expr2, ...]
+    if (es_expression.type == "ArrayExpression") {
+        const ret = [];
+        es_expression.elements.forEach(el => {
+            if (el.type == "SpreadElement") {
+                ret.push(...computeESExpression(tags, el.argument));
+            } else {
+                ret.push(computeESExpression(tags, el));
+            }
+        });
+        return ret;
+    }
+
+    // {a: expr1, expr2, ...expr3}
+    if (es_expression.type == "ObjectExpression") {
+        const ret = {};
+        es_expression.properties.forEach(prop => {
+            if (prop.type == "SpreadElement") {
+                Object.assign(ret, computeESExpression(tags, prop.argument));
+            }
+            if (prop.type == "Property") {
+                let key = prop.computed
+                    ? computeESExpression(tags, prop.key)
+                    : prop.key.name;
+                const value = computeESExpression(tags, prop.value);
+                ret[key] = value;
+            }
+        });
+        return ret;
+    }
+
+    // throw error in other cases
     throw Error(`not expression: "${es_expression}"`);
 }
 
