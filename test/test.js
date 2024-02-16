@@ -3,7 +3,7 @@ import { convert } from "../src/index.js";
 import assert from "assert";
 describe('convert(tags, template)', () => {
     describe('模板正确解析', () => {
-        describe('{{ express }} 输出正确', () => {
+        describe('{{express}} output', () => {
             it('{{ 变量 }} 输出正确', () => {
                 assert.strictEqual( // 测试 变量 括号中变量 含变量的字符串
                     convert({
@@ -105,14 +105,14 @@ describe('convert(tags, template)', () => {
                 assert.strictEqual( // Array.join 输出正确'
                     convert(
                         { 'mylist': ['apple', 'banana', 'orange', 'pear'] },
-                        '{{ mylist.join(" | ") }}'
+                        '{{ mylist.join(" | ") }},{{ mylist["join"](" | ") }}'
                     ),
-                    "apple | banana | orange | pear"
+                    "apple | banana | orange | pear,apple | banana | orange | pear"
                 );
             });
         });
-        describe('#for loop', () => {
-            it('#for 数组', () => {
+        describe('{{#for}} loop', () => {
+            it('for in 数组', () => {
                 assert.strictEqual( // 测试数组遍历
                     convert(
                         { peoplelist: ["张三", "李四", "王五"] },
@@ -128,7 +128,7 @@ describe('convert(tags, template)', () => {
                     '人物1:张三\n人物2:李四\n人物3:王五\n'
                 );
             });
-            it('#for 对象', () => {
+            it('for in 对象', () => {
                 assert.strictEqual( // 测试对象遍历
                     convert(
                         { person: { "name": "张三", "age": 18, "gender": "男" } },
@@ -144,15 +144,15 @@ describe('convert(tags, template)', () => {
                     "人员:\nname:张三\nage:18\ngender:男\n"
                 );
             });
-            it('#for 表达式中有空白符，如回车', () => {
+            it('for 表达式中有空白符', () => {
                 assert.strictEqual( // 表达式中有回车
                     convert({}, `{{\n   \n#for sn, name\n in ["张三", \n"李四", "王五"]\n}}人物{{sn}}:{{name}}\n{{\n#endfor \nsn, name\n}}`),
                     '人物0:张三\n人物1:李四\n人物2:王五\n'
                 );
             });
         });
-        describe('#if condition', () => {
-            it('#if condition', () => {
+        describe('{{#if}} condition', () => {
+            it('if condition', () => {
                 assert.strictEqual(
                     convert({}, ' {{#if "name".length \n>\n0   }}\n人物: {{"XX"}}{{#endif}}'),
                     " \n人物: XX"
@@ -172,6 +172,12 @@ describe('convert(tags, template)', () => {
                     ""
                 );
             });
+            it('空替换符 {{ }} 不输出', () => {
+                assert.strictEqual(
+                    convert({}, '{{ }}abc{{\t\n}}test\n'),
+                    "abctest\n"
+                );
+            });
             it('取消末尾换行', () => {
                 assert.strictEqual(
                     convert({}, '{{# comment}}_\r\n_\n\n_\ntest\n'),
@@ -181,48 +187,62 @@ describe('convert(tags, template)', () => {
         });
     });
     describe('模板语法纠错', () => {
+        it('表达式错误', () => {
+            assert.throws(() => { // 测试表达式不合法
+                convert({}, '{{a ** b}}');
+            }, SyntaxError);
+        });
         it('使用了不支持的语法', () => {
             assert.throws(() => {
                 convert({}, '{{ a++ }}{{ c <<= d }}');
-            }, Error);
+            }, SyntaxError);
             assert.throws(() => {
                 convert({}, '{{b = a => a+1}}');
-            }, Error);
+            }, SyntaxError);
         });
-        it('{{#指令 错误', () => {
+        it('if 指令错误', () => {
             assert.throws(() => {
                 convert({}, '{{#if9>0}}9>0{{#endif}}');
-            }, Error);
+            }, SyntaxError);
             assert.throws(() => {
                 convert({}, '{{#fora in [0,1,2]}}{{a}}{{#endfor}}');
-            }, Error);
+            }, SyntaxError);
             assert.throws(() => {
                 convert({}, '{{#if   }}if{{#endif}}');
-            }, Error);
+            }, SyntaxError);
             assert.throws(() => {
                 convert({}, '{{#for   }}if{{#endif}}');
-            }, Error);
+            }, SyntaxError);
         });
         it('#for #endfor 不匹配', () => {
             assert.throws(() => {
                 convert({}, '{{#for name in ["张三", "李四", "王五"]}}人物: {{name}}');
-            }, Error);
+            }, SyntaxError);
             assert.throws(() => {
                 convert({}, '以下人员:{{#if "赵六" in ["张三", "李四", "王五"]}}\n人物: {{name}}{{#endfor}}');
-            }, Error);
+            }, SyntaxError);
         });
         it('#if #endif 不匹配', () => {
             assert.throws(() => {
                 convert({}, '以下人员:{{#if "赵六" in ["张三", "李四", "王五"]}}\n人物: {{name}}');
-            }, Error);
+            }, SyntaxError);
             assert.throws(() => {
                 convert({}, '{{#for name in ["张三", "李四", "王五"]}}人物: {{name}}{{#endif}}');
-            }, Error);
+            }, SyntaxError);
         });
-        it('{{ 与 }} 配套嵌套正确', () => {
+        it('{{ 与 }} 配对不正确', () => {
             assert.throws(() => {
-                convert({}, '人物: {{name"赵六"');
-            }, Error);
+                convert({}, 'r11: {{# {{r12}} r13');
+            }, SyntaxError);
+            assert.throws(() => {
+                convert({}, 'r21: {{name r22');
+            }, SyntaxError);
+            assert.throws(() => {
+                convert({}, 'r31 }}{{name}} r32');
+            }, SyntaxError);
+            assert.throws(() => {
+                convert({}, 'r41: {{name}}r42 }} r43');
+            }, SyntaxError);
         });
     });
 });
