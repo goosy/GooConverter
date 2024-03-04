@@ -258,9 +258,9 @@ function convert_FOR_Goonode(tags, node) {
         content = '',
         left = node.expression.left,
         right = computeESExpression(tags, node.expression.right);
-    if (!right) throw Error("wrong #for statement!");
+    if (!right) throw Error("wrong for statement!");
     let isArray = Array.isArray(right);
-    // {{#for v in object}}
+    // {{for v in object}}
     if (left.type == 'Identifier') {
         value = left.name;
         list = Object.values(right);
@@ -272,7 +272,7 @@ function convert_FOR_Goonode(tags, node) {
         }
         return content;
     }
-    // {{#for k, v in object}}
+    // {{for k, v in object}}
     if (left.type == "ArrayExpression") {
         key = left[0].name;
         value = left[1].name;
@@ -287,7 +287,7 @@ function convert_FOR_Goonode(tags, node) {
         }
         return content;
     }
-    throw Error("wrong #for statement!");
+    throw Error("wrong for statement!");
 }
 
 function convert_IF_Goonode(tags, node) {
