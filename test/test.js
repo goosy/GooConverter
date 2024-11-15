@@ -2,47 +2,47 @@ import { convert } from "../src/index.js";
 import { throws, strictEqual } from "node:assert/strict";
 import { suite, test } from 'node:test';
 suite('convert(tags, template)', () => {
-    suite('模板正确解析', () => {
-        suite('{{express}} output', () => {
-            test('{{ 变量 }} 输出正确', () => {
-                strictEqual( // 测试 变量 括号中变量 含变量的字符串
+    suite('Template parsed correctly', () => {
+        suite('{{express}} outputs correctly', () => {
+            test('{{ variable }} outputs correctly', () => {
+                strictEqual( // Test Variables Variables in brackets String containing variables
                     convert({
                         "name": "赵六"
                     }, '人物: {{name}} {{(name)}} {{"name"+name // comment}}'),
                     "人物: 赵六 赵六 name赵六"
                 );
             });
-            test('{{ 非变量 }} 输出 undefined', () => {
-                strictEqual( // 测试 不是变量的标识符
+            test('{{ non-variable }} output undefined', () => {
+                strictEqual( // Test is not an identifier of a variable
                     convert({
                         "name": "赵六"
                     }, '人物: {{naem}} {{"name"+naem // 变量名称不正确}}'),
                     "人物: undefined nameundefined"
                 );
             });
-            test('{{ 一元二元运算式 }} 输出正确', () => {
-                strictEqual( // 测试数字的二元运算 + - * / %
+            test('{{ Unary binary operation expression }} outputs correctly', () => {
+                strictEqual( // Test binary operations on numbers + - * / %
                     convert(
                         { "length": 8, 'width': 6 },
                         '面积:{{(length+3)*(width-4)/2}} \n空余: {{length % width // comment}}'
                     ),
                     "面积:11 \n空余: 2"
                 );
-                strictEqual( // 测试布尔的二元运算 && ||
+                strictEqual( // Testing boolean binary operations && ||
                     convert(
                         { "go": true, 'car': false, ud: null },
                         '步行外出:{{go && !car}} \n乘车外出: {{go && car}} \n有外出: {{go || car}}\n{{ud ?? "无效值" // comment}}'
                     ),
                     "步行外出:true \n乘车外出: false \n有外出: true\n无效值"
                 );
-                strictEqual( // 测试其它二元运算 == === != !==
+                strictEqual( // Test other binary operations == === != !==
                     convert(
                         {},
                         '{{null == undefined}}:{{null === undefined}}:{{null != undefined}}:{{null !== undefined // comment}}'
                     ),
                     "true:false:false:true"
                 );
-                strictEqual( // 测试成员运算符 . []
+                strictEqual( // test membership operator . []
                     convert({
                         "ID": 1,
                         "prop": "ID",
@@ -53,7 +53,7 @@ suite('convert(tags, template)', () => {
                     }, '{{ID}} {{conn.ID}} {{conn["ID"]}} {{conn[prop]}} {{conn.addr.ID}} {{conn.addr["value"]}}'),
                     "1 2 2 2 3 xian rd. 128"
                 );
-                strictEqual( // 测试链运算符 ?.
+                strictEqual( // Test chain operator ?.
                     convert({
                         "someone": {
                             "addr": { "ID": 3, "value": "xian rd. 128" }
@@ -62,8 +62,8 @@ suite('convert(tags, template)', () => {
                     "3 xian rd. 128 undefined"
                 );
             });
-            test('{{ 三元运算式 }} 输出正确', () => {
-                strictEqual( // 测试赋值运算 '?:'
+            test('{{ternary arithmetic expression}} outputs correctly', () => {
+                strictEqual( // Test assignment operations '?:'
                     convert(
                         { "n": 1, 'b': false },
                         '{{n==1?"n=1":""}}\n{{b?"b=true":"b=false"}}'
@@ -71,8 +71,8 @@ suite('convert(tags, template)', () => {
                     "n=1\nb=false"
                 );
             });
-            test('{{ 数组字面量 }} 输出正确', () => {
-                strictEqual( // 测试数组字面量
+            test('{{ array literal }} outputs correctly', () => {
+                strictEqual( // Test array literal
                     convert(
                         { common: [true, 'test'] },
                         '{{ [1,2,3,"test"][3] }}_{{ [...common][1] }}'
@@ -80,8 +80,8 @@ suite('convert(tags, template)', () => {
                     "test_test"
                 );
             });
-            test('{{ 对象字面量 }} 输出正确', () => {
-                strictEqual( // 测试对象字面量
+            test('{{ object literal }} outputs correctly', () => {
+                strictEqual( // test object literal
                     convert(
                         { n: 1, has: false, common: { name: 'test' } },
                         '{{ ({n, a: 3, has}).has }}_{{ ({...common}).name }}'
@@ -89,15 +89,15 @@ suite('convert(tags, template)', () => {
                     "false_test"
                 );
             });
-            test('{{ 赋值运算式 }} 输出正确', () => {
-                strictEqual( // 测试赋值运算 '=', '+=', '-=', '*=', '**=', '/=', '%='
+            test('{{assignment expression}} outputs correctly', () => {
+                strictEqual( // Test assignment operations '=', '+=', '-=', '*=', '**=', '/=', '%='
                     convert(
                         { "n": 1, 'b': false },
                         '{{n+=7}}{{n}}\n{{b=b||true}}{{b}}\n{{n%=5}}{{n}}\n{{"n:",m=10,m}}'
                     ),
                     "8\ntrue\n3\nn:10"
                 );
-                strictEqual( // 测试赋值运算 '=', '+=', '-=', '*=', '**=', '/=', '%=', '??='
+                strictEqual( // Test assignment operations '=', '+=', '-=', '*=', '**=', '/=', '%=', '??='
                     convert(
                         { "n": 1, 'b': false },
                         '{{n+=7}}{{n}}\n{{c=b||"on false"}}{{c}}\n{{c=b??"no false"}}{{c}}\n{{n%=5}}{{n}}\n{{"n:",c=10,c}}'
@@ -105,36 +105,36 @@ suite('convert(tags, template)', () => {
                     "8\non false\nfalse\n3\nn:10"
                 );
             });
-            test('call 输出正确', () => {
-                strictEqual( // {{ range() }} 输出正确'
+            test('call outputs correctly', () => {
+                strictEqual( // {{ range() }} The output is correct
                     convert(
                         {},
                         '{{range(10)// array}}\n{{for i in range(1,11)}}{{i}} {{endfor}}\n{{for i in range(10,-1,-2)}}{{i}} {{endfor}}'
                     ),
                     "0,1,2,3,4,5,6,7,8,9\n1 2 3 4 5 6 7 8 9 10 \n10 8 6 4 2 0 "
                 );
-                strictEqual( // Object.valueOf Object.entries 输出正确'
+                strictEqual( // Object.valueOf Object.entries The output is correct'
                     convert(
                         { 'myobj': { name: 'myobj', value: 'v' } },
                         '{{myobj.valueOf()}} {{Object.entries(myobj)}}'
                     ),
                     "[object Object] name,myobj,value,v"
                 );
-                strictEqual( // Array.join 输出正确'
+                strictEqual( // Array.join The output is correct
                     convert(
                         { 'mylist': ['apple', 'banana', 'orange', 'pear'] },
                         '{{ mylist.join(" | ") }},{{ mylist["join"](" | ") }}'
                     ),
                     "apple | banana | orange | pear,apple | banana | orange | pear"
                 );
-                strictEqual( // ...展开运算符输出正确
+                strictEqual( // ...The spread operator output is correct
                     convert(
                         { a: [], b: [1, 2, 3] },
                         '{{a.push(...b)}}\n{{a.join("")}}'
                     ),
                     "3\n123"
                 );
-                strictEqual( // 自定义方法输出正确'
+                strictEqual( // Custom method output is correct
                     convert(
                         {
                             show() {
@@ -148,15 +148,15 @@ suite('convert(tags, template)', () => {
             });
         });
         suite('{{for}} loop', () => {
-            test('for in 数组', () => {
-                strictEqual( // 测试数组遍历
+            test('for in array', () => {
+                strictEqual( // Test array traversal
                     convert(
                         { peoplelist: ["张三", "李四", "王五"] },
                         '以下人员:\n{{for name in peoplelist}}人物: {{name}}\n{{endfor}}'
                     ),
                     "以下人员:\n人物: 张三\n人物: 李四\n人物: 王五\n"
                 );
-                strictEqual( // 测试数组带序号遍历
+                strictEqual( // Test array traversal with serial number
                     convert(
                         { peoplelist: ["张三", "李四", "王五"] },
                         '{{for sn, name in peoplelist}}人物{{sn+1}}:{{name}}\n{{endfor // sn, name}}'
@@ -164,15 +164,15 @@ suite('convert(tags, template)', () => {
                     '人物1:张三\n人物2:李四\n人物3:王五\n'
                 );
             });
-            test('for in 对象', () => {
-                strictEqual( // 测试对象遍历
+            test('for in object', () => {
+                strictEqual( // Test object traversal
                     convert(
                         { person: { "name": "张三", "age": 18, "gender": "男" } },
                         '人员:\n{{for prop in person}}{{prop}}\n{{endfor}}'
                     ),
                     "人员:\n张三\n18\n男\n"
                 );
-                strictEqual( // 测试对象带键值遍历
+                strictEqual( // Test object traversal with key value
                     convert(
                         { person: { "name": "张三", "age": 18, "gender": "男" } },
                         '人员:\n{{for pname, prop in person}}{{pname}}:{{prop}}\n{{endfor}}'
@@ -180,8 +180,8 @@ suite('convert(tags, template)', () => {
                     "人员:\nname:张三\nage:18\ngender:男\n"
                 );
             });
-            test('for 表达式中有空白符', () => {
-                strictEqual( // 表达式中有回车
+            test('whitespace characters in the for expression', () => {
+                strictEqual( // There is a carriage return in the expression
                     convert({}, `{{\n   \nfor sn, name\n in ["张三", \n"李四", "王五"]\n}}人物{{sn}}:{{name}}\n{{\nendfor \n//sn, name\n}}`),
                     '人物0:张三\n人物1:李四\n人物2:王五\n'
                 );
@@ -218,13 +218,13 @@ suite('convert(tags, template)', () => {
                     "123"
                 );
             });
-            test('空替换符 {{ }} 不输出', () => {
+            test('Empty replacement {{ }} is not output', () => {
                 strictEqual(
                     convert({}, '{{ }}abc{{\t\n}}test\n'),
                     "abctest\n"
                 );
             });
-            test('取消末尾换行', () => {
+            test('Cancel trailing line breaks', () => {
                 strictEqual(
                     convert({}, '{{// comment}}_\r\n_\n\n_\ntest\n'),
                     "\n_\ntest\n"
@@ -232,13 +232,13 @@ suite('convert(tags, template)', () => {
             });
         });
     });
-    suite('模板语法纠错', () => {
-        test('表达式错误', () => {
-            throws(() => { // 测试表达式不合法
+    suite('Template syntax error correction', () => {
+        test('Expression error', () => {
+            throws(() => { // Test expression is illegal
                 convert({}, '{{a ** b}}');
             }, SyntaxError);
         });
-        test('使用了不支持的语法', () => {
+        test('Unsupported syntax used', () => {
             throws(() => {
                 convert({}, '{{ a++ }}{{ c <<= d }}');
             }, SyntaxError);
@@ -246,7 +246,7 @@ suite('convert(tags, template)', () => {
                 convert({}, '{{b = a => a+1}}');
             }, SyntaxError);
         });
-        test('if for 指令错误', () => {
+        test('if for instruction error', () => {
             throws(() => {
                 convert({}, '{{if9>0}}9>0{{endif}}');
             }, SyntaxError);
@@ -266,7 +266,7 @@ suite('convert(tags, template)', () => {
                 convert({}, '{{for   }}if{{endif}}');
             }, SyntaxError);
         });
-        test('for endfor 不匹配', () => {
+        test('for endfor does not match', () => {
             throws(() => {
                 convert({}, '{{for name in ["张三", "李四", "王五"]}}人物: {{name}}');
             }, SyntaxError);
@@ -274,7 +274,7 @@ suite('convert(tags, template)', () => {
                 convert({}, '以下人员:{{if "赵六" in ["张三", "李四", "王五"]}}\n人物: {{name}}{{endfor}}');
             }, SyntaxError);
         });
-        test('if endif 不匹配', () => {
+        test('if endif does not match', () => {
             throws(() => {
                 convert({}, '以下人员:{{if "赵六" in ["张三", "李四", "王五"]}}\n人物: {{name}}');
             }, SyntaxError);
@@ -282,7 +282,7 @@ suite('convert(tags, template)', () => {
                 convert({}, '{{for name in ["张三", "李四", "王五"]}}人物: {{name}}{{endif}}');
             }, SyntaxError);
         });
-        test('{{ 与 }} 配对不正确', () => {
+        test('incorrect pairs of {{ }}', () => {
             throws(() => {
                 convert({}, 'r11: {{// {{r12}} r13');
             }, SyntaxError);
