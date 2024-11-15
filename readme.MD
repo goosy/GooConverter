@@ -29,23 +29,27 @@
 
 ### 条件替换
 
-根据条件决定是否显示对应结果，`#elseif` `#else` 是可选的，`#elseif` 可以有多个。
-1. `{{#if 条件1}} 结果1 {{#endif}}`
-2. `{{#if 条件1}} 结果1 {{#else}}其它结果 {{#endif}}`
-3. `{{#if 条件1}} 结果1 {{#elseif 条件2}} 结果2 {{#else}}其它结果 {{#endif}}` 
+根据条件决定是否显示对应结果，`elseif` `else` 是可选的，`elseif` 可以有多个。
+1. `{{if 条件1}} 输出1 {{endif}}`
+2. `{{if 条件1}} 输出1 {{else}}其它输出 {{endif}}`
+3. `{{if 条件1}} 输出1 {{elseif 条件2}} 输出2 {{else}} 其它输出 {{endif}}` 
 
 ### 循环替换
 
-- `{{#for value in object}} 内容:{{value}} {{#endfor}}`
+- `{{for value in object}} 内容:{{value}} {{endfor}}`
     循环输出，遍历object的所有自身属性值（不是属性键值）。
-- `{{#for key, value in Object}} 键值:{{key}}, 属性值:{{value}} {{#endfor}}`
+- `{{for key, value in Object}} 键值:{{key}}, 属性值:{{value}} {{endfor}}`
     同时遍历键和值，当object为Array时，键值为数字。
 
 ### 注释
 
-语法 `{{# 注释文本}}` 仅用于说明，不产生输出。
+在任何模板语法中，都可以用 `// 注释文本` 用于注释，不产生输出，`//` 与该行末之间的任何文字都视为注释。
 
-上面所有替换符，右标记 `}}` 后如果紧跟一个或多个 `_\n`，会视为替换符的一部分，不会输出到正文中。也可以理解为取消替换符行末的换行符输出。
+### 取消换行
+
+上面所有替换符，右标记 `}}` 后如果紧跟一个或多个 `_\n`(即紧跟下划线和换行)，会视为替换符的一部分，不会输出到正文中。
+
+也可以理解为取消替换符行末的换行输出。
 
 ## 例子
 
@@ -68,13 +72,13 @@ let tags = {
         "age": 29,
     }]
 };
-let template = `group: {{name}}{{ID = ID-8000 }}{{# 说明：取ID后2位形成编号}}
+let template = `group: {{name}}{{ID = ID-8000 }}{{// 说明：取ID后2位形成编号}}
 ID: {{ID}}
-adult:{{#for people in peoples}}_
-{{  #if people.age > 18}}
+people:{{for people in peoples}}_
+{{  if people.age > 18}}
 - {{people.name}}_
-{{  #endif}}_
-{{#endfor}}
+{{  endif}}_
+{{endfor}}
 `
 console.log(convert(tags, template));
 ```
