@@ -336,16 +336,19 @@ function GT_tree_append(code) {
     throw SyntaxError("wrong node");
 }
 
+function throw_wrong_pair(template, range) {
+    const left = Math.min(range[0], range[2]);
+    const right = Math.max(range[1], range[2]);
+    throw SyntaxError(`wrong pair of replacement标记不配对！
+wrong 位置: ${range[2] - left}
+content 内容: ${template.substring(left, right)}`);
+}
+
 /**
  * 
  * @param {string} template
  */
 export function parseToDOM(template) {
-    function throw_wrong_pair(range) {
-        throw SyntaxError(`wrong pair of replacement标记不配对！
-position 位置: ${range[0]}:${range[1]}
-content 内容: ${template.substring(...range)}`);
-    }
 
     // init document
     current_node = document = {
@@ -356,15 +359,16 @@ content 内容: ${template.substring(...range)}`);
     const reg_left = /\{\{/g; // looking for '{{' 
     const reg_right = /\}\}(_\r?\n)*/g; // looking for '}}_\n' 或 '}}'
     let current_index = 0;
-    let last_range = [0, 0];
-    let match;
+    let current_range = [0, 0, 0]; // [left_index, right_index, wrong_index]
 
-    // Search for {{.*}} until completed.
-    // eslint-disable-next-line no-constant-condition
-    while (match = reg_left.exec(template), match) {
-        const range_left = match.index;
-        const content_left = reg_left.lastIndex;
-        if (range_left < current_index) throw_wrong_pair(last_range);
+    // Search for {{.*}} until completed
+    for (const match_l of template.matchAll(reg_left)) {
+        const range_left = match_l.index;
+        const content_left = range_left + match_l[0].length;
+        if (range_left < current_index) {
+            current_range[2] = range_left;
+            throw_wrong_pair(template, current_range);
+        }
         const raw_range = [current_index, range_left];
         const raw_node = {
             type: 'raw',
@@ -374,20 +378,31 @@ content 内容: ${template.substring(...range)}`);
         }
         GT_tree_append(raw_node);
 
-        match = reg_right.exec(template);
-        if (!match) throw_wrong_pair([range_left, template.length]);
-        const content_right = match.index;
+        const match_r = reg_right.exec(template);
+        if (!match_r) {
+            current_range[1] = template.length;
+            throw_wrong_pair(template, [range_left, template.length]);
+        }
+        const content_right = match_r.index;
         const range_right = reg_right.lastIndex;
-        if (content_right < content_left) throw_wrong_pair(raw_range);
+        if (content_right < content_left) {
+            current_range[2] = content_right;
+            current_range[2] = content_right;
+            throw_wrong_pair(template, raw_range);
+        }
         const gtcode = template.substring(content_left, content_right).trim();
         const goonode = GTCode2Goonode(gtcode);
         goonode.range = [range_left, content_left, content_right, range_right];
         GT_tree_append(goonode);
         current_index = range_right;
-        last_range = [range_left, range_right];
+        current_range = [range_left, range_right];
     }
-    match = reg_right.exec(template);
-    if (match) throw_wrong_pair([current_index, reg_right.lastIndex]);
+    const match_r = reg_right.exec(template);
+    if (match_r) {
+        current_range[1] = template.length;
+        current_range[2] = match_r.index;
+        throw_wrong_pair(template, [current_index, reg_right.lastIndex]);
+    }
 
     if (template.length > current_index) current_node.contents.push({
         type: "raw",
