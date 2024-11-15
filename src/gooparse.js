@@ -1,5 +1,5 @@
 /**
- * @file 解析模板为语法树
+ * @file Parse template into syntax tree
  * @author goosy<'goosy.jo@gmail.com'>
  */
 
@@ -14,7 +14,7 @@ function isLimitedExpression(es_expression) {
         type,
         operator
     } = es_expression;
-    // 仅支持以下表达式和列出的操作符
+    // Only the following expressions and operators listed are supported
     if (
         ['Identifier', 'Literal'].includes(type)
     ) return true;
@@ -54,16 +54,16 @@ function isLimitedExpression(es_expression) {
         isLimitedExpression(es_expression.left) &&
         isLimitedExpression(es_expression.right)
     ) return true;
-    if ( // 三目运算符 ? :
+    if ( // ternary operator
         type == "ConditionalExpression" &&
         isLimitedExpression(es_expression.test) &&
         isLimitedExpression(es_expression.consequent) &&
         isLimitedExpression(es_expression.alternate)
     ) return true;
-    function is_spread_element(expr) { // 扩展运算符
+    function is_spread_element(expr) { // spread operator
         return expr.type == "SpreadElement" && isLimitedExpression(expr.argument);
     }
-    if ( // call 运算符
+    if ( // call operator
         type == "CallExpression" &&
         ['Identifier', 'MemberExpression'].includes(es_expression.callee.type) &&
         isLimitedExpression(es_expression.callee) &&
@@ -140,7 +140,7 @@ let document;
 let current_node;
 
 /**
- * 分析GTCode, 归类为 if endif for endfor raw let comment 几种Goonode的一个
+ * Analyze GTCode, classified as one of several Goonodes: if endif for endfor raw let comment
  * @param {string} GTCode 
  * @return {Goonode}
  */
@@ -268,64 +268,63 @@ function GT_tree_append(code) {
 
     // gen ifs[] if[]
     if (code.type == "ifs") {
-        // 当前节点 ►node[...]◄ 
-
-        stack_push(code); // 当前节点 node[... ifs[►if[]◄] ]
+        // current node ►node[...]◄ 
+        stack_push(code); // current node node[... ifs[►if[]◄] ]
         return;
     }
 
     // gen elseif[]
     if (code.type == "elseif" || code.type == "else") {
-        // 当前节点 ifs[...►(if|elseif)[...]◄ ]
+        // current node ifs[...►(if|elseif)[...]◄ ]
 
-        // 不能和上一个 {{if}} 或 {{elseif}} 匹配，报错
+        // Cannot match the previous {{if}} or {{elseif}}, an error will be reported
         const type = current_node.type;
         if (type != "if" && type != "elseif") throw SyntaxError("wrong pair of IF!");
 
-        // 出栈
-        stack_pop(); // 当前节点 ►ifs[...(if|elseif)[...]]◄
+        // pop
+        stack_pop(); // current node ►ifs[...(if|elseif)[...]]◄
 
-        // 重新入栈
-        stack_push(code); // 当前节点 ifs[...if|elseif[...], ►elseif|else[]◄ ]
+        // Push back onto the stack
+        stack_push(code); // current node ifs[...if|elseif[...], ►elseif|else[]◄ ]
 
         return;
     }
 
     // endif
     if (code.type == "endif") {
-        // 当前节点 node[...ifs[...►(if|elseif|else)[...]◄]]
+        // current node node[...ifs[...►(if|elseif|else)[...]◄]]
 
-        // 不能和上一个 {{if}} 或 {{elseif}} 或 {{else}} 匹配，报错
+        // Cannot match the previous {{if}} or {{elseif}} or {{else}}, an error will be reported
         const type = current_node.type;
         if (type != "if" && type != "elseif" && type != "else") throw SyntaxError("wrong pair of IF!");
 
-        // 出栈，如不在 ifs 队列中，报错
-        stack_pop(); // 当前节点 node[...►ifs[...if|elseif|else[...]]◄]
+        // Pop off the stack. If not in the ifs queue, an error will be reported.
+        stack_pop(); // current node node[...►ifs[...if|elseif|else[...]]◄]
         if (current_node.type != "ifs") throw SyntaxError("wrong pair of IF!");
 
-        // 再次出栈
-        stack_pop(); // 当前节点 ►node[...ifs[...if|elseif|else[...]]]◄
+        // Pop again
+        stack_pop(); // current node ►node[...ifs[...if|elseif|else[...]]]◄
         return;
     }
 
     // for[]
     if (code.type == "for") {
         // ►node[...]◄
-        stack_push(code); // 当前节点 node[...►for[]◄]
+        stack_push(code); // current node node[...►for[]◄]
         return;
     }
 
     // endfor
     if (code.type == "endfor") {
-        // 当前节点 node[...►for[...]◄]
+        // current node node[...►for[...]◄]
         if (current_node.type != "for") throw SyntaxError("wrong pair of FOR!");
-        stack_pop(); // 当前节点 ►node[...for[...]]◄
+        stack_pop(); // current node ►node[...for[...]]◄
         return;
     }
 
     // expression|raw[]
     if (code.type == "expression" || code.type == "raw") {
-        // 当前节点 ►node[...]◄
+        // current node ►node[...]◄
         current_node.contents.push(code); // 仅附加内容，当前节点不变 ►node[...(expression|raw)[] ]◄
         return;
     }
@@ -354,13 +353,13 @@ content 内容: ${template.substring(...range)}`);
         text: "",
         contents: []
     };
-    const reg_left = /\{\{/g; // 寻找 '{{' 
-    const reg_right = /\}\}(_\r?\n)*/g; // 寻找 '}}_\n' 或 '}}'
+    const reg_left = /\{\{/g; // looking for '{{' 
+    const reg_right = /\}\}(_\r?\n)*/g; // looking for '}}_\n' 或 '}}'
     let current_index = 0;
     let last_range = [0, 0];
     let match;
 
-    // 寻找{{.*}}直至完成。当正则式搜索不到匹配时，lastIndex会重新变成0
+    // Search for {{.*}} until completed.
     // eslint-disable-next-line no-constant-condition
     while (match = reg_left.exec(template), match) {
         const range_left = match.index;
@@ -397,7 +396,7 @@ content 内容: ${template.substring(...range)}`);
     });
 
     if (current_node != document) {
-        throw SyntaxError(`${current_node.type} 标记不匹配`);
+        throw SyntaxError(`${current_node.type} tag mismatch`);
     }
 
     return document;

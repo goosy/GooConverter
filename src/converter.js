@@ -1,9 +1,9 @@
 /**
- * @file 实现基于转换规则和模板转换
+ * @file Implements template conversion based on conversion rules
  * @author goosy.jo@gmail.com
- * @typedef {Object.<string, Object>} Tags 替换变量
- * @typedef {{name:string, tags:Tags}} Rule 转换规则
- * @typedef {Rule[]} Rules 转换规则表
+ * @typedef {Object.<string, Object>} Tags  tag and value dict
+ * @typedef {{name:string, tags:Tags}} Rule Conversion rule
+ * @typedef {Rule[]} Rules Conversion rule table
  */
 
 import {
@@ -55,12 +55,12 @@ const global_tags = {
         }
         return ret;
     },
-    Object, Array, Map, Set, // 透传一些系统对象
+    Object, Array, Map, Set, // Transparently transmit some system objects
 }
 
 /**
- * 递归计算表达式
- * @param {Object} tags dict of tag and value
+ * Recursively evaluate expressions
+ * @param {Object} tags tag and value dict
  * @param {AST} es_expression
  * @return {*}
  */
@@ -68,7 +68,7 @@ function computeESExpression(tags, es_expression) {
     // 'Identifier' 'AssignmentExpression' 'BinaryExpression' 'Literal'
     if (es_expression.type == "Literal") return es_expression.value;
     if (es_expression.type == "Identifier") {
-        return { ...global_tags, ...tags }[es_expression.name]; // 标识符必须在tags中，否则返回undefined
+        return { ...global_tags, ...tags }[es_expression.name]; // The identifier must be in tags, otherwise undefined is returned
     }
 
     // obj.foo
@@ -292,7 +292,7 @@ function convert_FOR_Goonode(tags, node) {
 
 function convert_IF_Goonode(tags, node) {
     let truenode = node.contents.find(node => {
-        if (node.type == "if" || node.type == "elseif") { // node.text 转换求值后，决定是否呈现 if body
+        if (node.type == "if" || node.type == "elseif") { // After node.text conversion evaluation, decide whether to render the if body
             return computeESExpression(tags, node.expression);
         }
         if (node.type == "else") return true;
@@ -305,7 +305,7 @@ function convert_IF_Goonode(tags, node) {
 }
 
 /**
- * 将 goonode DOM 转化为文字
+ * Convert goonode DOM to text
  * @param {Object} tags
  * @param {Goonode} dom
  * @returns {string}
