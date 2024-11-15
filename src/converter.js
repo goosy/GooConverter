@@ -32,27 +32,38 @@ export function* convertRules(rules, template) {
     }
 }
 
+function parseMemberExpression(tags, es_expression) {
+    const obj = computeESExpression(tags, es_expression.object);
+    const property = es_expression.computed ?
+        computeESExpression(tags, es_expression.property) :
+        es_expression.property.name;
+    return { obj, property };
+}
+
 /**
  * 递归计算表达式
  * @param {Object} tags dict of tag and value
  * @param {AST} es_expression 
- * @todo add ?? ?. ?: operater
  */
 function computeESExpression(tags, es_expression) {
-    function range(start, end, step) {
-        if (start === undefined) return [];
-        if (end === undefined) {
-            end = start
-            start = 0
-        }
-        let direct = start < end;
-        step = step === undefined ? (direct ? 1 : -1) : step;
-        let ret = [], index = start;
-        while (direct ? index < end : index > end) {
-            ret.push(index);
-            index += step;
-        }
-        return ret;
+    const fn_tags = {
+        range(start, end, step) {
+            if (start === undefined) return [];
+            if (end === undefined) {
+                end = start
+                start = 0
+            }
+            let direct = start < end;
+            step = step === undefined ? (direct ? 1 : -1) : step;
+            let ret = [], index = start;
+            while (direct ? index < end : index > end) {
+                ret.push(index);
+                index += step;
+            }
+            return ret;
+        },
+        Object, Array, Map, Set, // 透传一些系统对象
+        ...tags
     }
     // 'Identifier' 'AssignmentExpression' 'BinaryExpression' 'Literal'
     if (es_expression.type == "Literal") return es_expression.value;
@@ -60,17 +71,27 @@ function computeESExpression(tags, es_expression) {
         return tags[es_expression.name]; // 标识符必须在tags中，否则返回undefined
     }
     if (es_expression.type == "CallExpression") {
-        let argus = es_expression.arguments.map(argu => computeESExpression(tags, argu));
-        return range(...argus);
+        const argus = es_expression.arguments.map(argu => computeESExpression(tags, argu));
+        const callee = es_expression.callee;
+        if (callee.type == "Identifier") {
+            return computeESExpression(fn_tags, callee)(...argus);
+        }
+        if (callee.type == "MemberExpression") {
+            const { obj, property } = parseMemberExpression(fn_tags, callee);
+            return obj[property](...argus);
+        }
+        return '';
     }
     if (es_expression.type == "ArrayExpression") {
         return es_expression.elements.map(el => computeESExpression(tags, el));
     }
     if (es_expression.type == "MemberExpression") {
-        let obj = computeESExpression(tags, es_expression.object);
-        let property = es_expression.computed ?
-            computeESExpression(tags, es_expression.property) :
-            es_expression.property.name;
+        const { obj, property } = parseMemberExpression(tags, es_expression);
+        return obj[property];
+    }
+    if (es_expression.type == "ChainExpression") {
+        const { obj, property } = parseMemberExpression(tags, es_expression.expression);
+        if (obj === null || obj === undefined) return undefined;
         return obj[property];
     }
     if (es_expression.type == 'UnaryExpression') {
@@ -123,13 +144,17 @@ function computeESExpression(tags, es_expression) {
                 return left && right;
         }
     }
-    if (
-        es_expression.type == 'SequenceExpression'
-    ) {
+    if (es_expression.type == 'SequenceExpression') {
         return es_expression.expressions.reduce(
             (str, exp) => str + computeESExpression(tags, exp),
             ""
         );
+    }
+    if (es_expression.type == 'ConditionalExpression') {
+        const test = computeESExpression(tags, es_expression.test);
+        const consequent = computeESExpression(tags, es_expression.consequent);
+        const alternate = computeESExpression(tags, es_expression.alternate);
+        return test ? consequent : alternate;
     }
     if (
         es_expression.type == 'AssignmentExpression'

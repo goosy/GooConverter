@@ -15,6 +15,7 @@ function isLimitedExpression(es_expression) {
         operator
     } = es_expression;
     // 仅支持以下表达式和列出的操作符
+    // 为安全性不会支持函数表达式
     // @todo add ?? ?. ?: operater
     if (
         ['Identifier', 'Literal'].includes(type)
@@ -41,6 +42,10 @@ function isLimitedExpression(es_expression) {
         !es_expression.elements.find(e => !isLimitedExpression(e))
     ) return true;
     if (
+        type == "ChainExpression" &&
+        isLimitedExpression(es_expression.expression)
+    ) return true;
+    if (
         type == "MemberExpression" &&
         isLimitedExpression(es_expression.object) &&
         isLimitedExpression(es_expression.property)
@@ -55,11 +60,16 @@ function isLimitedExpression(es_expression) {
         isLimitedExpression(es_expression.left) &&
         isLimitedExpression(es_expression.right)
     ) return true;
-    if ( // 调用运算符只支持 range()
+    if ( // 三目运算符 ? :
+        type == "ConditionalExpression" &&
+        isLimitedExpression(es_expression.test) &&
+        isLimitedExpression(es_expression.consequent) &&
+        isLimitedExpression(es_expression.alternate)) return true;
+    if (
         type == "CallExpression" &&
-        es_expression.callee.type == 'Identifier' &&
-        es_expression.callee.name == 'range' &&
-        es_expression.arguments.length <= 3
+        ['Identifier', 'MemberExpression'].includes(es_expression.callee.type) &&
+        isLimitedExpression(es_expression.callee) &&
+        es_expression.arguments.every(argu=>isLimitedExpression(argu))
     ) return true;
     return false;
 }
@@ -155,7 +165,7 @@ function GTCode2Goonode(GTCode) {
 
     // meet {{#else }}
     if (GTCode.startsWith('#else')) {
-        let text = GTCode.substr(5);
+        let text = GTCode.substring(5);
         if (!/^(\s|$)/.test(text)) throw Error("#esle must be followed a space or nothing!");
         let comment = text.trim();
         return {
@@ -167,7 +177,7 @@ function GTCode2Goonode(GTCode) {
 
     // meet {{#endif}}
     if (GTCode.startsWith('#endif')) {
-        let text = GTCode.substr(6);
+        let text = GTCode.substring(6);
         if (!/^(\s|$)/.test(text)) throw Error("#endif must be followed a space or nothing!");
         let comment = text.trim();
         return {
@@ -192,7 +202,7 @@ function GTCode2Goonode(GTCode) {
 
     // meet {{#endfor}}
     if (GTCode.startsWith('#endfor')) {
-        let text = GTCode.substr(7);
+        let text = GTCode.substring(7);
         if (!/^(\s|$)/.test(text)) throw Error("#endfor must be followed a space or nothing!");
         let comment = text.trim();
         return {
@@ -205,7 +215,7 @@ function GTCode2Goonode(GTCode) {
     if (GTCode.startsWith('#')) {
         return {
             "type": "comment",
-            "text": GTCode.substr(1).trim(),
+            "text": GTCode.substring(1).trim(),
         }
     }
 
