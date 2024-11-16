@@ -24,9 +24,9 @@ const rules = [{
 const template = `{{station_name}}
 station ID: {{stationID}}
 people:
-{{ #for people in peoples}}_
+{{for people in peoples}}_
 - {{people.name}}
-{{ #endfor}}_
+{{endfor}}_
 `;
 
 for (const {name, content} of convertRules(rules, template)){
