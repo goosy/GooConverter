@@ -1,30 +1,32 @@
 import {convertRules} from  "../src/index.js";
-let rules = [{
-    "name": "Node_Data_GD8",
+const rules = [{
+    "name": "station_GD8",
     "tags": {
-        "node_name": "GD8",
-        "nodeID": 8078,
+        "station_name": "GD8",
+        "stationID": 8078,
         "peoples": [
             {"name": '张三', "age": 19, }, 
-            {"name": '李四', "age": 12, },
+            {"name": '李四', "age": 32, },
         ]
     },
 }, {
-    "name": "Node_Data_GD9",
+    "name": "station_GD9",
     "tags": {
-        "node_name": "GD9",
-        "nodeID": 8079,
+        "station_name": "GD9",
+        "stationID": 8079,
         "peoples": [
-            {"name": '王五', "age": 19, }, 
+            {"name": '王五', "age": 39, }, 
             {"name": '赵六', "age": 29, },
         ]
     },
 }];
 
-let template = `station: {{node_name}}
-station ID: {{nodeID}}
-people: {{ #for people in peoples}}{{ #if people.age > 18  }}
-* {{people.name}}{{#endif}}{{ #endfor}}
+const template = `{{station_name}}
+station ID: {{stationID}}
+people:
+{{ #for people in peoples}}_
+- {{people.name}}
+{{ #endfor}}_
 `;
 
 for (const {name, content} of convertRules(rules, template)){

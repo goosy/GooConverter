@@ -80,7 +80,7 @@ function isLimitedExpression(es_expression) {
  * @return 
  */
 function parse_es_expression(code) {
-    let error = Error("expression syntax error");
+    let error = SyntaxError("expression syntax error");
     if (typeof code != 'string') throw error;
     let ast = parse(code, { ecmaVersion: 2020 });
     if (ast.type != "Program" || ast.body.length != 1) throw error;
@@ -95,7 +95,7 @@ function parse_es_expression(code) {
  * @param {string} code 
  */
 function parse_esforloop_expression(code) {
-    let error = Error("#for expression syntax error");
+    let error = SyntaxError("#for expression syntax error");
     let expression = parse_es_expression(code)
     if (expression.type == 'BinaryExpression') return expression;
     let expressions = expression.expressions;
@@ -131,7 +131,7 @@ function GTCode2Goonode(GTCode) {
 
     // meet {{#if expression }}
     if (GTCode.startsWith('#if')) {
-        let error = Error("#if expression syntax error!");
+        let error = SyntaxError("#if expression syntax error!");
         let text = GTCode.replace(/^#if\s+/, '');
         if (text == GTCode) throw error;
         let expression = parse_es_expression(text);
@@ -151,7 +151,7 @@ function GTCode2Goonode(GTCode) {
 
     // meet {{#elseif expression }}
     if (GTCode.startsWith('#elseif')) {
-        let error = Error("#elseif expression syntax error!");
+        let error = SyntaxError("#elseif expression syntax error!");
         let text = GTCode.replace(/^#elseif\s+/, '');
         if (text == GTCode) throw error;
         expression = parse_es_expression(text);
@@ -166,7 +166,7 @@ function GTCode2Goonode(GTCode) {
     // meet {{#else }}
     if (GTCode.startsWith('#else')) {
         let text = GTCode.substring(5);
-        if (!/^(\s|$)/.test(text)) throw Error("#esle must be followed a space or nothing!");
+        if (!/^(\s|$)/.test(text)) throw SyntaxError("#esle must be followed a space or nothing!");
         let comment = text.trim();
         return {
             "type": "else",
@@ -178,7 +178,7 @@ function GTCode2Goonode(GTCode) {
     // meet {{#endif}}
     if (GTCode.startsWith('#endif')) {
         let text = GTCode.substring(6);
-        if (!/^(\s|$)/.test(text)) throw Error("#endif must be followed a space or nothing!");
+        if (!/^(\s|$)/.test(text)) throw SyntaxError("#endif must be followed a space or nothing!");
         let comment = text.trim();
         return {
             "type": "endif",
@@ -188,7 +188,7 @@ function GTCode2Goonode(GTCode) {
 
     // meet {{#for expression}}
     if (GTCode.startsWith('#for')) {
-        let error = Error("#for expression syntax error!");
+        let error = SyntaxError("#for expression syntax error!");
         let text = GTCode.replace(/^#for\s+/, '');
         if (text == GTCode) throw error;
         let expression = parse_esforloop_expression(text);
@@ -203,7 +203,7 @@ function GTCode2Goonode(GTCode) {
     // meet {{#endfor}}
     if (GTCode.startsWith('#endfor')) {
         let text = GTCode.substring(7);
-        if (!/^(\s|$)/.test(text)) throw Error("#endfor must be followed a space or nothing!");
+        if (!/^(\s|$)/.test(text)) throw SyntaxError("#endfor must be followed a space or nothing!");
         let comment = text.trim();
         return {
             "type": "endfor",
@@ -220,7 +220,7 @@ function GTCode2Goonode(GTCode) {
     }
 
     // meet {{expression}}
-    let error = Error("expression syntax error!");
+    let error = SyntaxError("expression syntax error!");
     let expression = parse_es_expression(GTCode);
     if (!expression) throw error;
     return {
@@ -265,7 +265,7 @@ function GT_tree_append(code) {
 
         // 不能和上一个 {{#if}} 或 {{#elseif}} 匹配，报错
         let type = current_node.type;
-        if (type != "if" && type != "elseif") throw Error("wrong pair of IF!");
+        if (type != "if" && type != "elseif") throw SyntaxError("wrong pair of IF!");
 
         // 出栈
         stack_pop(); // 当前节点 ►ifs[...(if|elseif)[...]]◄
@@ -282,11 +282,11 @@ function GT_tree_append(code) {
 
         // 不能和上一个 {{#if}} 或 {{#elseif}} 或 {{#else}} 匹配，报错
         let type = current_node.type;
-        if (type != "if" && type != "elseif" && type != "else") throw Error("wrong pair of IF!");
+        if (type != "if" && type != "elseif" && type != "else") throw SyntaxError("wrong pair of IF!");
 
         // 出栈，如不在 ifs 队列中，报错
         stack_pop(); // 当前节点 node[...►ifs[...if|elseif|else[...]]◄]
-        if (current_node.type != "ifs") throw Error("wrong pair of IF!");
+        if (current_node.type != "ifs") throw SyntaxError("wrong pair of IF!");
 
         // 再次出栈
         stack_pop(); // 当前节点 ►node[...ifs[...if|elseif|else[...]]]◄
@@ -303,7 +303,7 @@ function GT_tree_append(code) {
     // endfor
     if (code.type == "endfor") {
         // 当前节点 node[...►for[...]◄]
-        if (current_node.type != "for") throw Error("wrong pair of FOR!");
+        if (current_node.type != "for") throw SyntaxError("wrong pair of FOR!");
         stack_pop(); // 当前节点 ►node[...for[...]]◄
         return;
     }
@@ -319,7 +319,7 @@ function GT_tree_append(code) {
     if (code.type == "comment") {
         return;
     }
-    throw Error("wrong node");
+    throw SyntaxError("wrong node");
 }
 
 /**
@@ -383,7 +383,7 @@ content 内容: ${template.substring(...range)}`);
     });
 
     if (current_node != document) {
-        throw Error(`${current_node.type} 标记不匹配`);
+        throw SyntaxError(`${current_node.type} 标记不匹配`);
     }
 
     return document;

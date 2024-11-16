@@ -11,26 +11,24 @@ import {
 } from "./gooparse.js";
 
 /**
- * 
  * @param {Tags} tags tags dict for template
  * @param {string} template template string
+ * @return {string}
  */
 export function convert(tags, template) {
     return convert_dom(tags, parseToDOM(template));
 }
 
 /**
- * @param {Rules} rules 
- * @param {string} template  
- * @return {IterableIterator<{"name": string, "content": string}>} 
+ * @param {Rules} rules
+ * @param {string} template
+ * @return {Array.<{"name": string, "content": string}>}
  */
-export function* convertRules(rules, template) {
-    for (const rule of rules) {
-        yield {
-            "name": rule.name,
-            "content": convert(rule.tags, template)
-        };
-    }
+export function convertRules(rules, template) {
+    return rules.map(rule => ({
+        name: rule.name,
+        content: convert(rule.tags, template)
+    }));
 }
 
 function parseMemberExpression(tags, es_expression) {
