@@ -1,6 +1,6 @@
 {
     "name": "gooconverter",
-    "version": "0.4.2",
+    "version": "0.4.5",
     "type": "module",
     "description": "gen string from template",
     "main": "lib/index.cjs",
