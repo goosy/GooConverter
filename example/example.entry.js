@@ -1,12 +1,12 @@
-import {convertRules} from  "../src/index.js";
+import { convertRules } from "../src/index.js";
 const rules = [{
     "name": "station_GD8",
     "tags": {
         "station_name": "GD8",
         "stationID": 8078,
         "peoples": [
-            {"name": '张三', "age": 19, }, 
-            {"name": '李四', "age": 32, },
+            { "name": '张三', "age": 19 },
+            { "name": '李四', "age": 32 },
         ]
     },
 }, {
@@ -15,8 +15,8 @@ const rules = [{
         "station_name": "GD9",
         "stationID": 8079,
         "peoples": [
-            {"name": '王五', "age": 39, }, 
-            {"name": '赵六', "age": 29, },
+            { "name": '王五', "age": 39 },
+            { "name": '赵六', "age": 29 },
         ]
     },
 }];
@@ -29,7 +29,7 @@ people:
 {{endfor}}_
 `;
 
-for (const {name, content} of convertRules(rules, template)){
+for (const { name, content } of convertRules(rules, template)) {
     console.log(`${name}\n=======`);
     console.log(content);
 }

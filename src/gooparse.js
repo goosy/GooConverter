@@ -19,67 +19,67 @@ function isLimitedExpression(es_expression) {
         ['Identifier', 'Literal'].includes(type)
     ) return true;
     if (
-        type == 'AssignmentExpression' &&
+        type === 'AssignmentExpression' &&
         ['=', '+=', '-=', '*=', '**=', '/=', '%=', '??='].includes(operator) &&
-        es_expression.left.type == "Identifier" &&
+        es_expression.left.type === "Identifier" &&
         isLimitedExpression(es_expression.right)
     ) return true;
     if (
-        type == 'UnaryExpression' &&
+        type === 'UnaryExpression' &&
         ['+', '-', '~', '!'].includes(operator) &&
         isLimitedExpression(es_expression.argument)
     ) return true;
     if (
-        type == 'BinaryExpression' &&
+        type === 'BinaryExpression' &&
         ['in', '+', '-', '*', '/', '%', '==', '===', '!=', '!==', '<', '>', '<=', '>='].includes(operator) &&
         isLimitedExpression(es_expression.left) &&
         isLimitedExpression(es_expression.right)
     ) return true;
     if (
-        type == "ChainExpression" &&
+        type === "ChainExpression" &&
         isLimitedExpression(es_expression.expression)
     ) return true;
     if (
-        type == "MemberExpression" &&
+        type === "MemberExpression" &&
         isLimitedExpression(es_expression.object) &&
         isLimitedExpression(es_expression.property)
     ) return true;
     if (
-        type == 'SequenceExpression' &&
+        type === 'SequenceExpression' &&
         !es_expression.expressions.find(e => !isLimitedExpression(e))
     ) return true;
     if (
-        type == 'LogicalExpression' &&
-        (operator == '||' || operator == '&&' || operator == '??') &&
+        type === 'LogicalExpression' &&
+        (operator === '||' || operator === '&&' || operator === '??') &&
         isLimitedExpression(es_expression.left) &&
         isLimitedExpression(es_expression.right)
     ) return true;
-    if ( // ternary operator
-        type == "ConditionalExpression" &&
+    if ( // ternary operator ? :
+        type === "ConditionalExpression" &&
         isLimitedExpression(es_expression.test) &&
         isLimitedExpression(es_expression.consequent) &&
         isLimitedExpression(es_expression.alternate)
     ) return true;
     function is_spread_element(expr) { // spread operator
-        return expr.type == "SpreadElement" && isLimitedExpression(expr.argument);
+        return expr.type === "SpreadElement" && isLimitedExpression(expr.argument);
     }
-    if ( // call operator
-        type == "CallExpression" &&
+    if ( // call 运算符
+        type === "CallExpression" &&
         ['Identifier', 'MemberExpression'].includes(es_expression.callee.type) &&
         isLimitedExpression(es_expression.callee) &&
         es_expression.arguments.every(argu => is_spread_element(argu) || isLimitedExpression(argu))
     ) return true;
     if ( // [expr1, expr2, ...]
-        type == "ArrayExpression" &&
+        type === "ArrayExpression" &&
         es_expression.elements.every(element => {
             return is_spread_element(element) || isLimitedExpression(element);
         })
     ) return true;
     if ( // {a: expr1, expr2, ...expr3}
-        type == "ObjectExpression" &&
+        type === "ObjectExpression" &&
         es_expression.properties.every(prop => {
             if (is_spread_element(prop)) return true;
-            if (prop.type == "Property") {
+            if (prop.type === "Property") {
                 return isLimitedExpression(prop.key) && isLimitedExpression(prop.value);
             }
             return false;
@@ -97,12 +97,12 @@ function isLimitedExpression(es_expression) {
  */
 function parse_es_expression(code) {
     const error = SyntaxError("expression syntax error");
-    if (typeof code != 'string') throw error;
+    if (typeof code !== 'string') throw error;
     const ast = parse(code, { ecmaVersion: 2023 });
-    if (ast.type != "Program") throw error;
+    if (ast.type !== "Program") throw error;
     if (ast.body.length === 0) return null;
-    if (ast.body.length != 1) throw error;
-    if (ast.body[0].type != 'ExpressionStatement') throw error;
+    if (ast.body.length !== 1) throw error;
+    if (ast.body[0].type !== 'ExpressionStatement') throw error;
     const es_expression = ast.body[0].expression;
     if (!isLimitedExpression(es_expression)) throw error;
     return es_expression;
@@ -115,14 +115,14 @@ function parse_es_expression(code) {
 function parse_esforloop_expression(code) {
     const error = SyntaxError("for expression syntax error");
     let expression = parse_es_expression(code)
-    if (expression.type == 'BinaryExpression') return expression;
+    if (expression.type === 'BinaryExpression') return expression;
     const expressions = expression.expressions;
     if (!expressions) throw error;
-    if (expressions.length != 2) throw error;
-    if (expressions[0].type != 'Identifier') throw error;
-    if (expressions[1].type != 'BinaryExpression') throw error;
-    if (expressions[1].left.type != 'Identifier') throw error;
-    if (expressions[1].operator != 'in') throw error;
+    if (expressions.length !== 2) throw error;
+    if (expressions[0].type !== 'Identifier') throw error;
+    if (expressions[1].type !== 'BinaryExpression') throw error;
+    if (expressions[1].left.type !== 'Identifier') throw error;
+    if (expressions[1].operator !== 'in') throw error;
 
     expression = expressions[1];
     expression.left = [expressions[0], expression.left];
@@ -152,7 +152,7 @@ function GTCode2Goonode(GTCode) {
     if (gtcode.startsWith('if')) {
         const error = SyntaxError("if expression syntax error!");
         const text = gtcode.replace(/^if\s+/, '');
-        if (text == gtcode) throw error;
+        if (text === gtcode) throw error;
         const expression = parse_es_expression(text);
         if (!expression) throw error;
         return {
@@ -171,8 +171,8 @@ function GTCode2Goonode(GTCode) {
     // meet {{elseif expression }}
     if (gtcode.startsWith('elseif')) {
         const error = SyntaxError("elseif expression syntax error!");
-        let text = gtcode.replace(/^elseif\s+/, '');
-        if (text == gtcode) throw error;
+        const text = gtcode.replace(/^elseif\s+/, '');
+        if (text === gtcode) throw error;
         const expression = parse_es_expression(text);
         if (!expression) throw error;
         return {
@@ -208,7 +208,7 @@ function GTCode2Goonode(GTCode) {
     if (gtcode.startsWith('for')) {
         const error = SyntaxError("for expression syntax error!");
         const text = gtcode.replace(/^for\s+/, '');
-        if (text == gtcode) throw error;
+        if (text === gtcode) throw error;
         const expression = parse_esforloop_expression(text);
         return {
             type: "for",
@@ -250,7 +250,7 @@ function stack_push(code) {
     current_node.contents.push(code);
     code.parents = current_node;
     current_node = code;
-    if (code.type == "ifs") {
+    if (code.type === "ifs") {
         current_node.contents[0].parents = current_node;
         current_node = current_node.contents[0];
     }
@@ -267,19 +267,19 @@ function stack_pop() {
 function GT_tree_append(code) {
 
     // gen ifs[] if[]
-    if (code.type == "ifs") {
-        // current node ►node[...]◄ 
+    if (code.type === "ifs") {
+        // current node ►node[...]◄
         stack_push(code); // current node node[... ifs[►if[]◄] ]
         return;
     }
 
     // gen elseif[]
-    if (code.type == "elseif" || code.type == "else") {
+    if (code.type === "elseif" || code.type === "else") {
         // current node ifs[...►(if|elseif)[...]◄ ]
 
         // Cannot match the previous {{if}} or {{elseif}}, an error will be reported
         const type = current_node.type;
-        if (type != "if" && type != "elseif") throw SyntaxError("wrong pair of IF!");
+        if (type !== "if" && type !== "elseif") throw SyntaxError("wrong pair of IF!");
 
         // pop
         stack_pop(); // current node ►ifs[...(if|elseif)[...]]◄
@@ -291,16 +291,16 @@ function GT_tree_append(code) {
     }
 
     // endif
-    if (code.type == "endif") {
+    if (code.type === "endif") {
         // current node node[...ifs[...►(if|elseif|else)[...]◄]]
 
         // Cannot match the previous {{if}} or {{elseif}} or {{else}}, an error will be reported
         const type = current_node.type;
-        if (type != "if" && type != "elseif" && type != "else") throw SyntaxError("wrong pair of IF!");
+        if (type !== "if" && type !== "elseif" && type !== "else") throw SyntaxError("wrong pair of IF!");
 
         // Pop off the stack. If not in the ifs queue, an error will be reported.
         stack_pop(); // current node node[...►ifs[...if|elseif|else[...]]◄]
-        if (current_node.type != "ifs") throw SyntaxError("wrong pair of IF!");
+        if (current_node.type !== "ifs") throw SyntaxError("wrong pair of IF!");
 
         // Pop again
         stack_pop(); // current node ►node[...ifs[...if|elseif|else[...]]]◄
@@ -308,29 +308,29 @@ function GT_tree_append(code) {
     }
 
     // for[]
-    if (code.type == "for") {
+    if (code.type === "for") {
         // ►node[...]◄
         stack_push(code); // current node node[...►for[]◄]
         return;
     }
 
     // endfor
-    if (code.type == "endfor") {
+    if (code.type === "endfor") {
         // current node node[...►for[...]◄]
-        if (current_node.type != "for") throw SyntaxError("wrong pair of FOR!");
+        if (current_node.type !== "for") throw SyntaxError("wrong pair of FOR!");
         stack_pop(); // current node ►node[...for[...]]◄
         return;
     }
 
     // expression|raw[]
-    if (code.type == "expression" || code.type == "raw") {
+    if (code.type === "expression" || code.type === "raw") {
         // current node ►node[...]◄
         current_node.contents.push(code); // 仅附加内容，当前节点不变 ►node[...(expression|raw)[] ]◄
         return;
     }
 
     // //
-    if (code.type == "comment") {
+    if (code.type === "comment") {
         return;
     }
     throw SyntaxError("wrong node");
@@ -410,7 +410,7 @@ export function parseToDOM(template) {
         contents: []
     });
 
-    if (current_node != document) {
+    if (current_node !== document) {
         throw SyntaxError(`${current_node.type} tag mismatch`);
     }
 
