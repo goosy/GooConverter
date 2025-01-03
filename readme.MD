@@ -16,11 +16,12 @@
 
 `{{表达式}}`
 
-在表达式中还可以使用转换器的唯一内置函数:
+在表达式中还可以使用转换器的内置函数:
 
-`range(start, end, step)`
+- `range(start, end, step)` 产生一个递增或递减的生成器对象，从 start 开始，小于end，步长为 step。
+- `stepper(start, step)` 产生一个递增或递减的步进器，s.next() 步进到下一个值并返回, s.value 为当前值。
 
-参数为整数，输出一个从 start 开始，小于end，步长为 step 的数组。
+非整数时，请注意输出为浮点数，建议输出时用 toFixed(n) 进行格式化。
 
 ### 赋值：
 

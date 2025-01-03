@@ -6,9 +6,7 @@
  * @typedef {Rule[]} Rules Conversion rule table
  */
 
-import {
-    parseToDOM
-} from "./gooparse.js";
+import { parseToDOM } from "./gooparse.js";
 
 /**
  * @param {Tags} tags tags dict for template
@@ -40,22 +38,32 @@ function parseMemberExpression(tags, es_expression) {
 }
 
 const global_tags = {
-    range(...argus) {
+    *range(...argus) {
         let [start, end, step] = argus;
-        if (start === undefined) return [];
+        if (start === undefined) return;
         if (end === undefined) {
             end = start
             start = 0
         }
         const direct = start < end;
         step ??= direct ? 1 : -1;
-        const ret = [];
         let index = start;
         while (direct ? index < end : index > end) {
-            ret.push(index);
+            yield index;
             index += step;
         }
-        return ret;
+    },
+    stepper(init_value = 0, step = 1) {
+        let v = init_value;
+        return {
+            get value() {
+                return v;
+            },
+            next() {
+                v += step;
+                return v;
+            },
+        }
     },
     Object, Array, Map, Set, // Transparently transmit some system objects
 }
@@ -258,17 +266,18 @@ function computeESExpression(tags, es_expression) {
 function convert_FOR_Goonode(tags, node) {
     let key;
     let value;
-    let list;
+    let iterable;
     let content = '';
     const left = node.expression.left;
     const right = computeESExpression(tags, node.expression.right);
     if (!right) throw Error("wrong for statement!");
-    const isArray = Array.isArray(right);
+    const is_array = Array.isArray(right);
+    const is_iterable = right != null && typeof right[Symbol.iterator] === 'function';
     // {{for v in object}}
     if (left.type === 'Identifier') {
         value = left.name;
-        list = Object.values(right);
-        for (const item of list) {
+        iterable = is_iterable ? right : Object.values(right);
+        for (const item of iterable) {
             content += convert_dom({
                 ...tags,
                 [value]: item
@@ -280,9 +289,9 @@ function convert_FOR_Goonode(tags, node) {
     if (left.type === "ArrayExpression") {
         key = left[0].name;
         value = left[1].name;
-        list = Object.entries(right);
-        for (let [k, v] of list) {
-            k = isArray ? Number.parseInt(k) : k;
+        iterable = Object.entries(is_iterable ? [...right] : right);
+        for (let [k, v] of iterable) {
+            k = is_array ? Number.parseInt(k) : k;
             content += convert_dom({
                 ...tags,
                 [key]: k,

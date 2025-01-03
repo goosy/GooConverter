@@ -106,14 +106,22 @@ suite('convert(tags, template)', () => {
                 );
             });
             test('call outputs correctly', () => {
-                strictEqual( // {{ range() }} The output is correct
+                strictEqual( // {{ range() }} outputs correctly
                     convert(
                         {},
-                        '{{range(10)// array}}\n{{for i in range(1,11)}}{{i}} {{endfor}}\n{{for i in range(10,-1,-2)}}{{i}} {{endfor}}'
+                        '{{[...range(10)]// array}}\n{{for i in range(1,11)}}{{i}} {{endfor}}\n{{for i in range(10,8,-0.2)}}{{i.toFixed(1)}} {{endfor}}'
                     ),
-                    "0,1,2,3,4,5,6,7,8,9\n1 2 3 4 5 6 7 8 9 10 \n10 8 6 4 2 0 "
+                    "0,1,2,3,4,5,6,7,8,9\n1 2 3 4 5 6 7 8 9 10 \n10.0 9.8 9.6 9.4 9.2 9.0 8.8 8.6 8.4 8.2 8.0 "
                 );
-                strictEqual( // Object.valueOf Object.entries The output is correct'
+                strictEqual( // {{ stepper() }} outputs correctly
+                    convert(
+                        {},
+                        '{{s = stepper(10,2)}}{{s.value}}{{for i in range(1,11)}} {{s.next()}}{{endfor}}\n'
+                        + '{{s = stepper(0,0.1)}}{{for i in range(0,10)}} {{s.next().toFixed(1)}}{{endfor}}'
+                    ),
+                    "10 12 14 16 18 20 22 24 26 28 30\n 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0"
+                );
+                strictEqual( // Object.valueOf and Object.entries output correctly
                     convert(
                         { 'myobj': { name: 'myobj', value: 'v' } },
                         '{{myobj.valueOf()}} {{Object.entries(myobj)}}'
@@ -134,7 +142,7 @@ suite('convert(tags, template)', () => {
                     ),
                     "3\n123"
                 );
-                strictEqual( // Custom method output is correct
+                strictEqual( // dustom method outputs correctly
                     convert(
                         {
                             show() {
@@ -213,7 +221,7 @@ suite('convert(tags, template)', () => {
                 );
                 strictEqual(
                     convert(
-                        {list: [1, 2, 3]},
+                        { list: [1, 2, 3] },
                         '{{\n \n// comment\nfor i in list//}}{{i}}{{endfor}}'),
                     "123"
                 );
