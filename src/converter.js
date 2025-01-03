@@ -173,6 +173,8 @@ function computeESExpression(tags, es_expression) {
     // expr1 **= expr2
     // expr1 /= expr2
     // expr1 %= expr2
+    // expr1 &&= expr2
+    // expr1 ||= expr2
     // expr1 ??= expr2
     if (
         es_expression.type === 'AssignmentExpression'
@@ -200,6 +202,12 @@ function computeESExpression(tags, es_expression) {
                 return "";
             case '%=':
                 tags[left] %= right;
+                return "";
+            case '&&=':
+                tags[left] &&= right;
+                return "";
+            case '||=':
+                tags[left] ||= right;
                 return "";
             case '??=':
                 tags[left] ??= right;
@@ -277,12 +285,13 @@ function convert_FOR_Goonode(tags, node) {
     if (left.type === 'Identifier') {
         value = left.name;
         iterable = is_iterable ? right : Object.values(right);
+        const original = value in tags ? tags[value] : undefined;
         for (const item of iterable) {
-            content += convert_dom({
-                ...tags,
-                [value]: item
-            }, node);
+            tags[value] = item;
+            content += convert_dom(tags, node);
         }
+        if (original === undefined) delete tags[value];
+        else tags[value] = original;
         return content;
     }
     // {{for k, v in object}}
@@ -290,14 +299,18 @@ function convert_FOR_Goonode(tags, node) {
         key = left[0].name;
         value = left[1].name;
         iterable = Object.entries(is_iterable ? [...right] : right);
+        const original_key = key in tags ? tags[key] : undefined;
+        const original_value = value in tags ? tags[value] : undefined;
         for (let [k, v] of iterable) {
             k = is_array ? Number.parseInt(k) : k;
-            content += convert_dom({
-                ...tags,
-                [key]: k,
-                [value]: v
-            }, node);
+            tags[key] = k;
+            tags[value] = v;
+            content += convert_dom(tags, node);
         }
+        if (original_key === undefined) delete tags[key];
+        else tags[key] = original_key;
+        if (original_value === undefined) delete tags[value];
+        else tags[value] = original_value;
         return content;
     }
     throw Error("wrong for statement!");
@@ -312,7 +325,7 @@ function convert_IF_Goonode(tags, node) {
         return false;
     });
     if (truenode) {
-        return convert_dom({ ...tags }, truenode);
+        return convert_dom(tags, truenode);
     }
     return "";
 }

@@ -7,7 +7,7 @@ suite('convert(tags, template)', () => {
             test('{{ variable }} outputs correctly', () => {
                 strictEqual( // Test Variables Variables in brackets String containing variables
                     convert({
-                        "name": "赵六"
+                        name: "赵六"
                     }, '人物: {{name}} {{(name)}} {{"name"+name // comment}}'),
                     "人物: 赵六 赵六 name赵六"
                 );
@@ -15,7 +15,7 @@ suite('convert(tags, template)', () => {
             test('{{ non-variable }} output undefined', () => {
                 strictEqual( // Test is not an identifier of a variable
                     convert({
-                        "name": "赵六"
+                        name: "赵六"
                     }, '人物: {{naem}} {{"name"+naem // 变量名称不正确}}'),
                     "人物: undefined nameundefined"
                 );
@@ -23,14 +23,14 @@ suite('convert(tags, template)', () => {
             test('{{ Unary binary operation expression }} outputs correctly', () => {
                 strictEqual( // Test binary operations on numbers + - * / %
                     convert(
-                        { "length": 8, 'width': 6 },
+                        { length: 8, width: 6 },
                         '面积:{{(length+3)*(width-4)/2}} \n空余: {{length % width // comment}}'
                     ),
                     "面积:11 \n空余: 2"
                 );
                 strictEqual( // Testing boolean binary operations && ||
                     convert(
-                        { "go": true, 'car': false, ud: null },
+                        { go: true, car: false, ud: null },
                         '步行外出:{{go && !car}} \n乘车外出: {{go && car}} \n有外出: {{go || car}}\n{{ud ?? "无效值" // comment}}'
                     ),
                     "步行外出:true \n乘车外出: false \n有外出: true\n无效值"
@@ -44,31 +44,40 @@ suite('convert(tags, template)', () => {
                 );
                 strictEqual( // test membership operator . []
                     convert({
-                        "ID": 1,
-                        "prop": "ID",
-                        "conn": {
-                            "ID": 2,
-                            "addr": { "ID": 3, "value": "xian rd. 128" }
+                        ID: 1,
+                        prop: "ID",
+                        conn: {
+                            ID: 2,
+                            addr: { ID: 3, value: "xian rd. 128" }
                         }
                     }, '{{ID}} {{conn.ID}} {{conn["ID"]}} {{conn[prop]}} {{conn.addr.ID}} {{conn.addr["value"]}}'),
                     "1 2 2 2 3 xian rd. 128"
                 );
                 strictEqual( // Test chain operator ?.
                     convert({
-                        "someone": {
-                            "addr": { "ID": 3, "value": "xian rd. 128" }
+                        someone: {
+                            addr: { ID: 3, value: "xian rd. 128" }
                         }
                     }, '{{someone?.addr?.ID}} {{someone["addr"]?.value}} {{someone["addr"]?.zip}}'),
                     "3 xian rd. 128 undefined"
                 );
             });
-            test('{{ternary arithmetic expression}} outputs correctly', () => {
+            test('{{ ternary arithmetic expression }} outputs correctly', () => {
                 strictEqual( // Test assignment operations '?:'
                     convert(
-                        { "n": 1, 'b': false },
+                        { n: 1, b: false },
                         '{{n==1?"n=1":""}}\n{{b?"b=true":"b=false"}}'
                     ),
                     "n=1\nb=false"
+                );
+            });
+            test('{{ sequence expression }} outputs correctly', () => {
+                strictEqual( // Test sequence operations ','
+                    convert(
+                        {},
+                        '{{a = 1, b =2, a + b}}\n{{h="hello", w="word", h+" "+w}}'
+                    ),
+                    "3\nhello word"
                 );
             });
             test('{{ array literal }} outputs correctly', () => {
@@ -89,23 +98,44 @@ suite('convert(tags, template)', () => {
                     "false_test"
                 );
             });
-            test('{{assignment expression}} outputs correctly', () => {
-                strictEqual( // Test assignment operations '=', '+=', '-=', '*=', '**=', '/=', '%='
+            test('{{ assignment expression }} outputs correctly', () => {
+                // Test assignment operations '=', '+=', '-=', '*=', '/=', '**=', '%=', '??='
+                strictEqual( // '=', '+=', '-=', '*=', '/='
                     convert(
-                        { "n": 1, 'b': false },
-                        '{{n+=7}}{{n}}\n{{b=b||true}}{{b}}\n{{n%=5}}{{n}}\n{{"n:",m=10,m}}'
+                        { b: false },
+                        '{{n=1}}{{n}}\n{{n+=2}}{{n}}\n{{n-=3}}{{n}}\n{{n*=4}}{{n}}\n{{n/=5}}{{n}}'
                     ),
-                    "8\ntrue\n3\nn:10"
-                );
-                strictEqual( // Test assignment operations '=', '+=', '-=', '*=', '**=', '/=', '%=', '??='
+                    '1\n3\n0\n0\n0'
+                )
+                strictEqual( // '**=', '%='
                     convert(
-                        { "n": 1, 'b': false },
-                        '{{n+=7}}{{n}}\n{{c=b||"on false"}}{{c}}\n{{c=b??"no false"}}{{c}}\n{{n%=5}}{{n}}\n{{"n:",c=10,c}}'
+                        { b: false },
+                        '{{n=2}}{{n}}\n{{n**=3}}{{n}}\n{{n%=3}}{{n}}\n{{b??=4}}{{b}}\n{{c??=5}}{{c}}'
                     ),
-                    "8\non false\nfalse\n3\nn:10"
+                    '2\n8\n2\nfalse\n5'
+                )
+                strictEqual( // '&&=', '||=', '??='
+                    convert(
+                        { a: false, b: true },
+                        '{{a&&="a"}}{{a}}\n{{b&&="&&b"}}{{b}}\n{{a||="||a"}}{{a}}\n{{b||="||b"}}{{b}}\n{{a??="??a"}}{{a}}\n{{d??="??d"}}{{d}}'
+                    ),
+                    'false\n&&b\n||a\n&&b\n||a\n??d'
+                )
+                strictEqual( // assignment in loop and condition
+                    convert(
+                        {
+                            list: [
+                                [1, 2, 3],
+                                [7, 8],
+                                [4, 5, 6]
+                            ]
+                        },
+                        '{{n=0}}{{if true}}{{n+=1,n}}:nothing\n{{endif}}{{for i in list}}{{for j in i}}{{n+=1,n}}:{{j}}\n{{endfor}}{{endfor}}'
+                    ),
+                    '1:nothing\n2:1\n3:2\n4:3\n5:7\n6:8\n7:4\n8:5\n9:6\n'
                 );
             });
-            test('call outputs correctly', () => {
+            test('{{ call expression }} outputs correctly', () => {
                 strictEqual( // {{ range() }} outputs correctly
                     convert(
                         {},
@@ -123,14 +153,14 @@ suite('convert(tags, template)', () => {
                 );
                 strictEqual( // Object.valueOf and Object.entries output correctly
                     convert(
-                        { 'myobj': { name: 'myobj', value: 'v' } },
+                        { myobj: { name: 'myobj', value: 'v' } },
                         '{{myobj.valueOf()}} {{Object.entries(myobj)}}'
                     ),
                     "[object Object] name,myobj,value,v"
                 );
                 strictEqual( // Array.join The output is correct
                     convert(
-                        { 'mylist': ['apple', 'banana', 'orange', 'pear'] },
+                        { mylist: ['apple', 'banana', 'orange', 'pear'] },
                         '{{ mylist.join(" | ") }},{{ mylist["join"](" | ") }}'
                     ),
                     "apple | banana | orange | pear,apple | banana | orange | pear"
@@ -175,14 +205,14 @@ suite('convert(tags, template)', () => {
             test('for in object', () => {
                 strictEqual( // Test object traversal
                     convert(
-                        { person: { "name": "张三", "age": 18, "gender": "男" } },
+                        { person: { name: "张三", age: 18, gender: "男" } },
                         '人员:\n{{for prop in person}}{{prop}}\n{{endfor}}'
                     ),
                     "人员:\n张三\n18\n男\n"
                 );
                 strictEqual( // Test object traversal with key value
                     convert(
-                        { person: { "name": "张三", "age": 18, "gender": "男" } },
+                        { person: { name: "张三", age: 18, gender: "男" } },
                         '人员:\n{{for pname, prop in person}}{{pname}}:{{prop}}\n{{endfor}}'
                     ),
                     "人员:\nname:张三\nage:18\ngender:男\n"
@@ -203,7 +233,7 @@ suite('convert(tags, template)', () => {
                 );
                 strictEqual(
                     convert({
-                        "name": "吴七"
+                        name: "吴七"
                     }, '{{if \nname}}{{name}}{{ endif \n// comment}}'),
                     "吴七"
                 );
@@ -240,7 +270,7 @@ suite('convert(tags, template)', () => {
             });
         });
     });
-    suite('Template syntax error correction', () => {
+    suite('Template syntax error', () => {
         test('Expression error', () => {
             throws(() => { // Test expression is illegal
                 convert({}, '{{a ** b}}');

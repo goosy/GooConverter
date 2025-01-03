@@ -20,7 +20,7 @@ function isLimitedExpression(es_expression) {
     ) return true;
     if (
         type === 'AssignmentExpression' &&
-        ['=', '+=', '-=', '*=', '**=', '/=', '%=', '??='].includes(operator) &&
+        ['=', '+=', '-=', '*=', '**=', '/=', '%=', '&&=', '||=',  '??='].includes(operator) &&
         es_expression.left.type === "Identifier" &&
         isLimitedExpression(es_expression.right)
     ) return true;
