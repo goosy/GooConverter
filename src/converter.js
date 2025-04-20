@@ -48,7 +48,7 @@ const global_tags = {
         const direct = start < end;
         step ??= direct ? 1 : -1;
         let index = start;
-        while (direct ? index < end : index > end) {
+        while (direct === (index < end)) {
             yield index;
             index += step;
         }
@@ -61,7 +61,7 @@ const global_tags = {
             },
             next() {
                 v += step;
-                return v;
+                return '';
             },
         }
     },
